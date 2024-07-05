@@ -16,7 +16,7 @@ class Member(Base):
   nickname = Column(String(12), nullable=False)
   status = Column(String(12), default="ACTIVE")
 
-  tag = relationship("MemberTag", back_populates="member")
+  tag = relationship("Tag", secondary=member_tag, back_populates="member")
   resume = relationship("Resume", back_populates="member")
   alarm = relationship("Alarm", back_populates="member")
   post = relationship("Board", back_populates="member")
@@ -35,7 +35,7 @@ class Resume(Base):
   public = Column(Boolean, nullable=False)
 
   member = relationship("Member", back_populates="resume")
-  tag = relationship("ResumeTag", back_populates="resume")
+  tag = relationship("Tag", secondary=resume_tag, back_populates="resume")
 
 #게시판
 class Board(Base):
@@ -57,7 +57,7 @@ class Board(Base):
 
   member = relationship("Member", back_populates="post")
   alarm = relationship("Alarm", back_populates="post")
-  tag = relationship("BoardTag", back_populates="post")
+  tag = relationship("Tag", secondary=post_tag, back_populates="post")
   like = relationship("Like", back_populates="post")
   comment = relationship("Comment", back_populates="post")
   chatroom = relationship("Chatroom", back_populates="post")
@@ -146,6 +146,27 @@ class Message(Base):
   member = relationship("Member", back_populates="message")
   chatroom = relationship("Chatroom", back_populates="message")
 
+member_tag = Table(
+  "MemberTag",
+  Base.metadata,
+  Column("tag_id", ForegnKey("tag.id"), primary_key=True),
+  Column("member_id", ForeignKey("member.id"), primary_key=True)
+)
+
+post_tag = Table(
+  "PostTag",
+  Base.metadata,
+  Column("tag_id", ForegnKey("tag.id"), primary_key=True),
+  Column("post_id", ForeignKey("post.id"), primary_key=True)
+)
+
+resume_tag = Table(
+  "ResumeTag",
+  Base.metadata,
+  Column("tag_id", ForegnKey("tag.id"), primary_key=True),
+  Column("resume_id", ForeignKey("resume.id"), primary_key=True)
+)
+
 #태그
 class Tag():
   __tablename__ = 'tag'
@@ -154,39 +175,40 @@ class Tag():
   name = Column(String(30), nullable=False)
   use_count = Column(Integer, nullable=False, default=0)
 
-  member = relationship("MemberTag", back_populates="tag")
-  post = relationship("BoardTag", back_populates="tag")
-  resume = relationship("ResumeTag", back_populates="tag")
+  member = relationship("Member", secondary=member_tag, back_populates="tag")
+  post = relationship("Board", secondary=post_tag, back_populates="tag")
+  resume = relationship("Resume", secondary=resume_tag, back_populates="tag")
 
-#관심태그 sqlalchemy model
-class MemberTag(Base):
-  __tablename__ = 'member_tag'
 
-  id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
-  tag_id = Column(BIGINT, ForeignKey('tag.id'), nullable=False)
-  member_id = Column(BIGINT, ForeignKey('member.id'), nullable=False)
-
-  member = relationship("Member", back_populates="tag")
-  tag = relationship("Tag", back_populates="member")
-
-#게시글 태그
-class BoardTag(Base):
-  __tablename__ = 'post_tag'
-
-  id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
-  post_id = Column(BIGINT, ForeignKey('post.id'), nullable=False)
-  tag_id = Column(BIGINT, ForeignKey('tag.id'), nullable=False)
-
-  post = relationship("Post", back_populates="tag")
-  tag = relationship("Tag", back_populates="post")
-
-#이력서 태그
-class ResumeTag(Base):
-  __tablename__ = 'resume_tag'
-
-  id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
-  resume_id = Column(BIGINT, ForeignKey('resume.id'), nullable=False)
-  tag_id = Column(BIGINT, ForeignKey('tag.id'), nullable=False)
-
-  resume = relationship("Resume", back_populates="tag")
-  tag = relationship("Tag", back_populates="resume")
+# #관심태그 sqlalchemy model
+# class MemberTag(Base):
+#   __tablename__ = 'member_tag'
+#
+#   id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
+#   tag_id = Column(BIGINT, ForeignKey('tag.id'), nullable=False)
+#   member_id = Column(BIGINT, ForeignKey('member.id'), nullable=False)
+#
+#   member = relationship("Member", back_populates="tag")
+#   tag = relationship("Tag", back_populates="member")
+#
+# #게시글 태그
+# class BoardTag(Base):
+#   __tablename__ = 'post_tag'
+#
+#   id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
+#   post_id = Column(BIGINT, ForeignKey('post.id'), nullable=False)
+#   tag_id = Column(BIGINT, ForeignKey('tag.id'), nullable=False)
+#
+#   post = relationship("Post", back_populates="tag")
+#   tag = relationship("Tag", back_populates="post")
+#
+# #이력서 태그
+# class ResumeTag(Base):
+#   __tablename__ = 'resume_tag'
+#
+#   id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
+#   resume_id = Column(BIGINT, ForeignKey('resume.id'), nullable=False)
+#   tag_id = Column(BIGINT, ForeignKey('tag.id'), nullable=False)
+#
+#   resume = relationship("Resume", back_populates="tag")
+#   tag = relationship("Tag", back_populates="resume")
