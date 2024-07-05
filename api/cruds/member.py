@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
-import api.models.member as member_model
+import api.models.model as member_model
 from api.schemas.login import SessionData
 
 

@@ -6,6 +6,35 @@ from sqlalchemy.orm import declarative_base
 Base = declarative_base()
 
 
+member_tag = Table(
+  "MemberTag",
+  Base.metadata,
+  Column("tag_id", ForeignKey("tag.id"), primary_key=True),
+  Column("member_id", ForeignKey("member.id"), primary_key=True)
+)
+
+post_tag = Table(
+  "PostTag",
+  Base.metadata,
+  Column("tag_id", ForeignKey("tag.id"), primary_key=True),
+  Column("post_id", ForeignKey("post.id"), primary_key=True)
+)
+
+resume_tag = Table(
+  "ResumeTag",
+  Base.metadata,
+  Column("tag_id", ForeignKey("tag.id"), primary_key=True),
+  Column("resume_id", ForeignKey("resume.id"), primary_key=True)
+)
+
+member_chatroom = Table(
+  "member_chatroom",
+  Base.metadata,
+  Column("chatroom_id", ForeignKey("chatroom.id"), primary_key=True),
+  Column("member_id", ForeignKey("member.id"), primary_key=True)
+)
+
+
 #회원 정보
 class Member(Base):
   __tablename__ = 'member'
@@ -18,11 +47,12 @@ class Member(Base):
 
   tag = relationship("Tag", secondary=member_tag, back_populates="member")
   resume = relationship("Resume", back_populates="member")
-  alarm = relationship("Alarm", back_populates="member")
-  post = relationship("Board", back_populates="member")
+  alarm_sent = relationship("Alarm", foreign_keys="Alarm.sender_id", back_populates="sender")
+  alarm_received = relationship("Alarm", foreign_keys="Alarm.receiver_id", back_populates="receiver")
+  post = relationship("Post", back_populates="member")
   like = relationship("Like", back_populates="member")
   comment = relationship("Comment", back_populates="member")
-  chatroom = relationship("MemberChatroom", back_populates="member")
+  chatroom = relationship("Chatroom", secondary=member_chatroom, back_populates="member")
   message = relationship("Message", back_populates="member")
 
 #이력서
@@ -38,7 +68,7 @@ class Resume(Base):
   tag = relationship("Tag", secondary=resume_tag, back_populates="resume")
 
 #게시판
-class Board(Base):
+class Post(Base):
   __tablename__ = 'post'
 
   id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
@@ -61,6 +91,7 @@ class Board(Base):
   like = relationship("Like", back_populates="post")
   comment = relationship("Comment", back_populates="post")
   chatroom = relationship("Chatroom", back_populates="post")
+  category = relationship("Category", back_populates="post")
 
 #좋아요
 class Like(Base):
@@ -96,7 +127,7 @@ class Category(Base):
   id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
   name = Column(String(30), nullable=False)
 
-  post = relationship("Board", back_populates="category")
+  post = relationship("Post", back_populates="category")
 
 #알람
 class Alarm(Base):
@@ -109,7 +140,8 @@ class Alarm(Base):
     type = Column(TINYINT(unsigned=True), nullable=False)
     contents = Column(String(255))
 
-    member = relationship("Member", back_populates="alarm")
+    sender = relationship("Member", foreign_keys=[sender_id], back_populates="alarm_sent")
+    receiver = relationship("Member", foreign_keys=[receiver_id], back_populates="alarm_received")
     post = relationship("Post", back_populates="alarm")
 
 #채팅방
@@ -121,17 +153,19 @@ class Chatroom(Base):
 
   post = relationship("Post", back_populates="chatroom")
   message = relationship("Message", back_populates="chatroom")
+  member = relationship("Member", secondary=member_chatroom, back_populates="chatroom")
+
 
 #채팅방 참가 멤버
-class MemberChatroom(Base):
-  __tablename__ = 'member_chatroom'
-  
-  id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
-  chatroom_id = Column(BIGINT, ForeignKey('chatroom.id'), nullable=False)
-  member_id = Column(BIGINT, ForeignKey('member.id'), nullable=False)
-
-  member = relationship("Member", back_populates="chatroom")
-  chatroom = relationship("Chatroom", back_populates="member")
+# class MemberChatroom(Base):
+#   __tablename__ = 'member_chatroom'
+#
+#   id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
+#   chatroom_id = Column(BIGINT, ForeignKey('chatroom.id'), nullable=False)
+#   member_id = Column(BIGINT, ForeignKey('member.id'), nullable=False)
+#
+#   member = relationship("Member", back_populates="chatroom")
+#   chatroom = relationship("Chatroom", back_populates="member")
 
 #채팅내역
 class Message(Base):
@@ -146,29 +180,8 @@ class Message(Base):
   member = relationship("Member", back_populates="message")
   chatroom = relationship("Chatroom", back_populates="message")
 
-member_tag = Table(
-  "MemberTag",
-  Base.metadata,
-  Column("tag_id", ForegnKey("tag.id"), primary_key=True),
-  Column("member_id", ForeignKey("member.id"), primary_key=True)
-)
-
-post_tag = Table(
-  "PostTag",
-  Base.metadata,
-  Column("tag_id", ForegnKey("tag.id"), primary_key=True),
-  Column("post_id", ForeignKey("post.id"), primary_key=True)
-)
-
-resume_tag = Table(
-  "ResumeTag",
-  Base.metadata,
-  Column("tag_id", ForegnKey("tag.id"), primary_key=True),
-  Column("resume_id", ForeignKey("resume.id"), primary_key=True)
-)
-
 #태그
-class Tag():
+class Tag(Base):
   __tablename__ = 'tag'
 
   id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
@@ -176,8 +189,9 @@ class Tag():
   use_count = Column(Integer, nullable=False, default=0)
 
   member = relationship("Member", secondary=member_tag, back_populates="tag")
-  post = relationship("Board", secondary=post_tag, back_populates="tag")
+  post = relationship("Post", secondary=post_tag, back_populates="tag")
   resume = relationship("Resume", secondary=resume_tag, back_populates="tag")
+
 
 
 # #관심태그 sqlalchemy model
@@ -192,7 +206,7 @@ class Tag():
 #   tag = relationship("Tag", back_populates="member")
 #
 # #게시글 태그
-# class BoardTag(Base):
+# class PostTag(Base):
 #   __tablename__ = 'post_tag'
 #
 #   id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
