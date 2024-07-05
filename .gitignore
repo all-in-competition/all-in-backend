@@ -1,6 +1,9 @@
 .env
 .idea
 __pycache__
+Lib/
+Scripts/
 *.pyc
 alembic.ini
 migrate_db.py
+pyvenv.cfg
