@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, BIGINT, String, ForeignKey, TINYINT, TIMESTAMP
+from sqlalchemy import Boolean, Column, BIGINT, String, ForeignKey, TIMESTAMP
 from sqlalchemy.orm import relationship
 
 from api.db import Base
@@ -35,7 +35,7 @@ class Post(Base):
   create_at = Column(TIMESTAMP)
   update_at = Column(TIMESTAMP)
   deadline = Column(TIMESTAMP)
-  max_member = Column(TINYINT)
+  max_member = Column(BIGINT)
 
 
   category = relationship("Category", back_populates="post")
@@ -45,6 +45,6 @@ class Category(Base):
   __tablename__ = 'category'
 
   id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
-  name =  Column(String(30), nullable=false)
+  name =  Column(String(30), nullable=False)
 
   post = relationship("Post", back_populates="category")
