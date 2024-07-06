@@ -3,11 +3,8 @@ from fastapi import FastAPI
 from api.routers import task, done, login
 from starlette.middleware.sessions import SessionMiddleware
 from api.configs.app_config import settings
-# from .models.model import Comment
 
-# print(Comment())
-
-app = FastAPI()
+app = FastAPI(root_path="/api")
 app.include_router(task.router)
 app.include_router(done.router)
 app.include_router(login.router)
