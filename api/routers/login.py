@@ -2,12 +2,11 @@ from fastapi import APIRouter, Request, HTTPException, Depends
 from starlette.responses import JSONResponse, RedirectResponse
 from authlib.integrations.starlette_client import OAuth, OAuthError
 from api.configs.app_config import settings
-from aiohttp import ClientSession
-from api.cruds import member
+from api.cruds import member as crud_member
 from api.db import get_db
 from sqlalchemy.orm import Session
 
-from api.schemas.login import SessionData, to_session_data
+from api.schemas import login as login_schema
 
 
 router = APIRouter()
@@ -32,47 +31,38 @@ oauth.register(
 
 @router.get('/login/{provider}')
 async def login(request: Request, provider: str):
+    # 지원하지 않는 로그인 방식 예외 처리
     if provider not in oauth._clients:
         raise HTTPException(status_code=400, detail="Unsupported provider")
 
+    # 로그인 URI로 리다이렉트 응답
     redirect_uri = request.url_for('auth', provider=provider)
     return await oauth.create_client(provider).authorize_redirect(request, redirect_uri)
-
-
-def is_first_login(db: Session, session_data: SessionData) -> bool:
-    find_user = member.find_member(db=db, user_info=session_data)
-    if find_user:
-        return True
-    else:
-        return False
-
-
-async def get_kakao_user_info(token):
-    user_info_url = "https://kapi.kakao.com/v2/user/me"
-    headers = {"Authorization": f"Bearer {token}"}
-
-    async with ClientSession() as client:
-        async with client.get(user_info_url, headers=headers) as response:
-            if response.status != 200:
-                raise HTTPException(status_code=response.status, detail="Failed to fetch user info from Kakao")
-            user_info = await response.json()
-    return user_info
 
 
 @router.get('/auth/{provider}/callback')
 async def auth(request: Request, provider: str, db: Session = Depends(get_db)):
     try:
         if provider == 'kakao':
-            token = await oauth.kakao.authorize_access_token(request)
-            user_info = await get_kakao_user_info(token.get('access_token'))
-            session_data = to_session_data(user_info)
-            if is_first_login(db=db, session_data=session_data):
-                member.create_member(db=db, member_create=session_data)
+            # access 토큰 가져오기
+            token_response = await oauth.kakao.authorize_access_token(request)
+            access_token = token_response.get('access_token')
+            if not access_token:
+                raise HTTPException(status_code=401, detail="Invalid token")
 
-        if not session_data:
-            raise HTTPException(status_code=400, detail="Failed to retrieve user info")
+            # 유저 정보 가져오기 (provider_type, provider_id, nickname)
+            user_info = await crud_member.get_kakao_user_info(access_token)
+            session_data = login_schema.to_session_data(user_info)
+            if not session_data:
+                raise HTTPException(status_code=400, detail="Failed to retrieve user info")
 
+        # 처음 로그인한 유저는 등록
+        if crud_member.is_first_login(db=db, session_data=session_data):
+            crud_member.create_member(db=db, member_create=session_data)
+
+        # 로그인한 유저 세션 저장소에 등록
         request.session['user'] = dict(session_data)
+
     except OAuthError as error:
         raise HTTPException(status_code=400, detail=str(error))
 
@@ -81,5 +71,9 @@ async def auth(request: Request, provider: str, db: Session = Depends(get_db)):
 
 @router.get('/logout')
 async def logout(request: Request):
-    request.session.pop('user', None)
-    return JSONResponse({"message": "Logout successful"})
+    # 로그아웃한 유저 세션 저장소에서 삭제
+    logout_user = request.session.pop('user', None)
+    if not logout_user:
+        raise HTTPException(status_code=400, detail="Already logged out")
+
+    return JSONResponse({"message": "Logout successful", "user":logout_user})
