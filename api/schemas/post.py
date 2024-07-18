@@ -12,6 +12,14 @@ class PostCreate(BaseModel):
   max_member : int
   tags : List[str]
 
+class PostResponse(BaseModel):
+  post_id : int
+  title : str
+  tags : List[str]
+  author_id : int
+  create_at : datetime
+  like_count : int
+  current_member : int
 
 class PostUpdate(BaseModel):
   category_id : int
