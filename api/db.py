@@ -1,7 +1,8 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
+from api.configs.app_config import settings
 
-DB_URL = "mysql+pymysql://root@db:3306/demo?charset=utf8"
+DB_URL = settings.DB_URL
 
 #데이터베이스 연결과 관리을 위한 Engine 객체생성
 db_engine = create_engine(DB_URL, echo=True)
