@@ -1,15 +1,16 @@
-from pydantic import BaseModel, Field
+from typing import List
 
+from pydantic import BaseModel, Field
+from datetime import datetime
 
 class PostCreate(BaseModel):
   author_id : int
   category_id : int
   title : str
   contents : str
-  create_at : datetime
-  deadLine : datetime
+  deadline : datetime
   max_member : int
-  tag
+  tags : List[str]
 
 
 class PostUpdate(BaseModel):
