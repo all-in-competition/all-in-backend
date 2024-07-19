@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-
+from api.models.model import Tag
 
 class ResumeUpdate(BaseModel):
   contents : str
@@ -13,3 +13,9 @@ class ResumeCreate(BaseModel):
 class ResumeResponse(BaseModel):
   member_name : str
   contents : str
+  #tag :
+
+class ResumeDitailResponse(BaseModel):
+  member_name: str
+  contents: str
+  #tag :
