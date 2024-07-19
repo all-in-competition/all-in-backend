@@ -80,7 +80,7 @@ class Post(Base):
   update_at = Column(TIMESTAMP, default=func.current_timestamp(),onupdate=func.current_timestamp(), nullable=False)
   deadline = Column(TIMESTAMP, nullable=False)
   max_member = Column(TINYINT(unsigned=True), nullable=False, default=0)
-  view_count = Column(INTEGER(unsigned=True), nullable=False, default=0)
+  chat_count = Column(INTEGER(unsigned=True), nullable=False, default=0)
   like_count = Column(INTEGER(unsigned=True), nullable=False, default=0)
   current_member = Column(TINYINT(unsigned=True), nullable=False, default=0)
   status = Column(String(12), nullable=False, default="ACTIVE")
