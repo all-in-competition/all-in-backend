@@ -1,5 +1,5 @@
 from api.models.model import Post
-from fastapi import APIRouter, Query, Depends, HTTPException
+from fastapi import APIRouter, Query, Depends, HTTPException, Request
 from api.db import get_db
 from api.models.model import Post as PostModel, Tag
 from api.schemas.post import PostCreate, PostDetailResponse
@@ -28,5 +28,13 @@ async def get_post(post_id:int, db: Session = Depends(get_db)) -> PostDetailResp
 async def create_post(post:PostCreate, db: Session = Depends(get_db)):
     try:
         return crud_post.create_post(db, post)
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@router.post("/{post_id}/like")
+async def like_post(request:Request, post_id:int, db: Session = Depends(get_db)):
+    try:
+        current_user_id = request.session['user']
+        crud_post.like_post(post_id, current_user_id,db)
     except SQLAlchemyError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
