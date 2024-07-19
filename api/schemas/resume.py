@@ -2,9 +2,8 @@ from pydantic import BaseModel, Field
 
 
 class ResumeUpdate(BaseModel):
-  id : int
   contents : str
-  public : bool
+  public : bool = False
 
 class ResumeCreate(BaseModel):
   member_id : int
