@@ -20,12 +20,13 @@ def create_resume(db: Session, uid: member_schema.MemberCreate):
         db.rollback()
         raise e
 
-def update_resume(db: Session, new: ResumeUpdate):
-    db.execute(
-    update(Resume).
-    where(new.id == Resume.id).
-    values(content=new.contents, public=new.public)
-    )
+def update_resume(id: int, content: str, public: bool, db: Session):
+    db_resume = db.query(Resume).filter_by(id = id).first()
+    if db_resume:
+        db_resume.contents = content
+        db_resume.public = public
+        db.commit()
+
 def get_resumes(db: Session):
     db_resume_list = db.query(Resume).all()
 
