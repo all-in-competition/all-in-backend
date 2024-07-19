@@ -68,3 +68,14 @@ def create_post(db: Session, post: PostCreate) -> PostResponse:
     except SQLAlchemyError as e:
         db.rollback()
         raise e
+
+def like_post(post_id: int, user_id: int, db: Session):
+    try:
+        db_post = db.query(Post).filter(Post.id == post_id).first()
+        if db_post is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Post not found')
+        db_post.like_count += 1
+        db.commit()
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise e
