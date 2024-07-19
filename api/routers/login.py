@@ -2,6 +2,7 @@ from fastapi import APIRouter, Request, HTTPException, Depends
 from starlette.responses import JSONResponse, RedirectResponse
 from authlib.integrations.starlette_client import OAuth, OAuthError
 from api.configs.app_config import settings
+from api.cruds import resume as crud_resume
 from api.cruds import member as crud_member
 from api.db import get_db
 from sqlalchemy.orm import Session
@@ -55,10 +56,10 @@ async def auth(request: Request, provider: str, db: Session = Depends(get_db)):
             if not user_info:
                 raise HTTPException(status_code=400, detail="Failed to retrieve user info")
 
-        # 처음 로그인한 유저는 등록
         session_data = crud_member.find_member(db, user_info)
         if not session_data:
-            session_data = crud_member.create_member(db=db, member_create=session_data)
+            session_data = crud_member.create_member(db=db, user_info=user_info)
+            crud_resume.create_resume(db=db, uid=session_data)
 
         # 로그인한 유저 세션 저장소에 등록
         request.session['user'] = dict(session_data)
