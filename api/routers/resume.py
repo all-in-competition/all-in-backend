@@ -24,7 +24,6 @@ async def update_resume(request: Request, id : int, content: str, public: bool, 
         user_info = request.session["user"]
         crud_resume.update_resume(id, content, public, db, user_info)
     except SQLAlchemyError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     return JSONResponse({"message": "update successful"})
 

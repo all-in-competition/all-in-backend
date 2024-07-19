@@ -21,13 +21,17 @@ def create_resume(db: Session, uid: member_schema.MemberCreate):
         raise e
 
 def update_resume(id: int, content: str, public: bool, db: Session, user_info: member_schema.MemberCreate):
-    db_resume = db.query(Resume).filter_by(id = id).first()
-    if(user_info['id'] == db_resume.member_id):
+    try:
         db_resume = db.query(Resume).filter_by(id = id).first()
-        if db_resume:
-            db_resume.contents = content
-            db_resume.public = public
-            db.commit()
+        if(user_info['id'] == db_resume.member_id):
+            db_resume = db.query(Resume).filter_by(id = id).first()
+            if db_resume:
+                db_resume.contents = content
+                db_resume.public = public
+                db.commit()
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise e
 
 def get_resumes(db: Session):
     db_resume_list = db.query(Resume).all()
