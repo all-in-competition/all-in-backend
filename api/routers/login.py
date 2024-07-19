@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from api.schemas import login as login_schema
 
 
-router = APIRouter()
+router = APIRouter(tags=["login"])
 
 # OAuth 클라이언트 설정
 oauth = OAuth()
