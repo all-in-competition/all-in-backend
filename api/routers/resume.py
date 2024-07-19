@@ -11,12 +11,20 @@ from starlette.responses import JSONResponse
 
 router = APIRouter(prefix="/resumes", tags=["resumes"])
 
-# @router.get("")
-# async def get_posts(db: Session = Depends(get_db)):
-#     try:
-#         return crud_resume.get_posts(db)
-#     except SQLAlchemyError as e:
-#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+@router.get("")
+async def get_resumes(db: Session = Depends(get_db)):
+    try:
+       return crud_resume.get_resumes(db)
+    except SQLAlchemyError as e:
+       raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+@router.get("/{resume_id}")
+async def get_resume(resume_id:int, db: Session = Depends(get_db)):
+    try:
+        return crud_resume.get_resume(resume_id, db)
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
 
 @router.put("/me")
 async def update_resume(request: Request, new: ResumeUpdate, db: Session = Depends(get_db)):

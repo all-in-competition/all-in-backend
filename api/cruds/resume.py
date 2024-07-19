@@ -1,4 +1,5 @@
-from api.models.model import Resume, Tag
+from api.models.model import Resume, Member, Tag
+from fastapi import HTTPException
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from api.schemas import member as member_schema
@@ -33,9 +34,18 @@ def update_resume(content: str, public: bool, db: Session, user_info: member_sch
 
 def get_resumes(db: Session):
     db_resume_list = db.query(Resume).all()
+    return [ResumeResponse(
+        member_name=db.query(Member).filter_by(id=db_resume.member_id).first().nickname,
+        content=db_resume.contents) for db_resume in db_resume_list]
 
-    return [ResumeResponse(member_name=db_resume.member,
-                         content=db_resume.contents) for db_resume in db_resume_list]
-
-def get_resume(db: Session, id: int):
-    return db.query(Resume).filter(id == Resume.id)
+def get_resume(id: int, db: Session):
+    try:
+        db_resume = db.query(Resume).filter_by(id = id).first()
+        if db_resume is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Post not found')
+        resume_detail = ResumeDetailResponse(
+            contents=db_resume.contents
+        )
+        return resume_detail
+    except SQLAlchemyError as e:
+        raise HTTPException(e)
