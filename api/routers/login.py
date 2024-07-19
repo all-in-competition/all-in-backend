@@ -52,13 +52,13 @@ async def auth(request: Request, provider: str, db: Session = Depends(get_db)):
 
             # 유저 정보 가져오기 (provider_type, provider_id, nickname)
             user_info = await crud_member.get_kakao_user_info(access_token)
-            session_data = login_schema.to_session_data(user_info)
-            if not session_data:
+            if not user_info:
                 raise HTTPException(status_code=400, detail="Failed to retrieve user info")
 
         # 처음 로그인한 유저는 등록
-        if crud_member.is_first_login(db=db, session_data=session_data):
-            crud_member.create_member(db=db, member_create=session_data)
+        session_data = crud_member.find_member(db, user_info)
+        if not session_data:
+            session_data = crud_member.create_member(db=db, member_create=session_data)
 
         # 로그인한 유저 세션 저장소에 등록
         request.session['user'] = dict(session_data)
