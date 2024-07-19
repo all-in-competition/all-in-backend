@@ -1,4 +1,4 @@
-from api.models.member import Post
+from api.models.model import Post
 from fastapi import APIRouter, Query, Depends, HTTPException
 from api.db import get_db
 from api.models.model import Post as PostModel, Tag
