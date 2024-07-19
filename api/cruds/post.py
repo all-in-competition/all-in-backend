@@ -1,20 +1,25 @@
 from api.models.model import Post, Tag
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
-from api.schemas.post import PostCreate, PostResponse
+from api.schemas.post import PostCreate, PostSummaryResponse
 from starlette import status
 
 
 def get_posts(db: Session):
-    db_post_list = db.query(Post).all()
-
-    return [PostResponse(post_id=db_post.id,
-                         title=db_post.title,
-                         tags=[tag.name for tag in db_post.tag],
-                         author_id=db_post.author_id,
-                         create_at=db_post.create_at,
-                         like_count=db_post.like_count,
-                         current_member=db_post.current_member) for db_post in db_post_list]
+    db_post_list = db.query(Post).order_by(Post.create_at.desc()).all()
+    a = Post()
+    [db_tag for db_tag in a.tag]
+    return [PostSummaryResponse(
+        author_name=db_post.member.nickname,
+        status=db_post.status,
+        chat_count=db_post.chat_count,
+        like_count=db_post.like_count,
+        create_at=db_post.create_at,
+        deadline=db_post.deadline,
+        title=db_post.title,
+        tags=[db_tag.name for db_tag in db_post.tag],
+        category_id = db_post.category_id
+    ) for db_post in db_post_list]
 
 def create_post(db: Session, post: PostCreate):
     try:
