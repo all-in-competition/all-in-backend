@@ -22,6 +22,8 @@ class PostSummaryResponse(BaseModel):
   tags: List[str]
   category_id: int
 
+class PostDetailResponse(BaseModel):
+  contents: str
 
 class PostResponse(BaseModel):
   post_id : int
