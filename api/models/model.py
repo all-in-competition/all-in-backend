@@ -7,127 +7,134 @@ Base = declarative_base()
 
 
 member_tag = Table(
-  "MemberTag",
-  Base.metadata,
-  Column("tag_id", ForeignKey("tag.id"), primary_key=True),
-  Column("member_id", ForeignKey("member.id"), primary_key=True)
+    "member_tag",
+    Base.metadata,
+    Column("tag_id", ForeignKey("tag.id"), primary_key=True),
+    Column("member_id", ForeignKey("member.id"), primary_key=True)
 )
 
 post_tag = Table(
-  "PostTag",
-  Base.metadata,
-  Column("tag_id", ForeignKey("tag.id"), primary_key=True),
-  Column("post_id", ForeignKey("post.id"), primary_key=True)
+    "post_tag",
+    Base.metadata,
+    Column("tag_id", ForeignKey("tag.id"), primary_key=True),
+    Column("post_id", ForeignKey("post.id"), primary_key=True)
 )
 
 resume_tag = Table(
-  "ResumeTag",
-  Base.metadata,
-  Column("tag_id", ForeignKey("tag.id"), primary_key=True),
-  Column("resume_id", ForeignKey("resume.id"), primary_key=True)
+    "resume_tag",
+    Base.metadata,
+    Column("tag_id", ForeignKey("tag.id"), primary_key=True),
+    Column("resume_id", ForeignKey("resume.id"), primary_key=True)
 )
 
 member_chatroom = Table(
-  "member_chatroom",
-  Base.metadata,
-  Column("chatroom_id", ForeignKey("chatroom.id"), primary_key=True),
-  Column("member_id", ForeignKey("member.id"), primary_key=True)
+    "member_chatroom",
+    Base.metadata,
+    Column("chatroom_id", ForeignKey("chatroom.id"), primary_key=True),
+    Column("member_id", ForeignKey("member.id"), primary_key=True)
 )
 
 
-#회원 정보
+# 회원 정보
 class Member(Base):
-  __tablename__ = 'member'
+    __tablename__ = 'member'
 
-  id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
-  provider_id = Column(String(255), nullable=False)
-  provider_type = Column(String(30), nullable=False)
-  nickname = Column(String(12), nullable=False)
-  status = Column(String(12), default="ACTIVE")
+    id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
+    provider_id = Column(String(255), nullable=False)
+    provider_type = Column(String(30), nullable=False)
+    nickname = Column(String(12), nullable=False)
+    status = Column(String(12), default="ACTIVE")
 
-  tag = relationship("Tag", secondary=member_tag, back_populates="member")
-  resume = relationship("Resume", back_populates="member")
-  alarm_sent = relationship("Alarm", foreign_keys="Alarm.sender_id", back_populates="sender")
-  alarm_received = relationship("Alarm", foreign_keys="Alarm.receiver_id", back_populates="receiver")
-  post = relationship("Post", back_populates="member")
-  like = relationship("Like", back_populates="member")
-  comment = relationship("Comment", back_populates="member")
-  chatroom = relationship("Chatroom", secondary=member_chatroom, back_populates="member")
-  message = relationship("Message", back_populates="member")
+    tag = relationship("Tag", secondary=member_tag, back_populates="member")
+    resume = relationship("Resume", back_populates="member")
+    alarm_sent = relationship("Alarm", foreign_keys="Alarm.sender_id", back_populates="sender")
+    alarm_received = relationship("Alarm", foreign_keys="Alarm.receiver_id", back_populates="receiver")
+    post = relationship("Post", back_populates="member")
+    like = relationship("Like", back_populates="member")
+    comment = relationship("Comment", back_populates="member")
+    chatroom = relationship("Chatroom", secondary=member_chatroom, back_populates="member")
+    message = relationship("Message", back_populates="member")
 
-#이력서
+
+# 이력서
 class Resume(Base):
-  __tablename__ = 'resume'
+    __tablename__ = 'resume'
 
-  id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
-  member_id = Column(BIGINT, ForeignKey('member.id'), nullable=False)
-  contents = Column(String(5000), nullable=False)
-  public = Column(Boolean, nullable=False)
+    id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
+    member_id = Column(BIGINT, ForeignKey('member.id'), nullable=False)
+    contents = Column(String(5000), nullable=False)
+    public = Column(Boolean, nullable=False)
 
-  member = relationship("Member", back_populates="resume")
-  tag = relationship("Tag", secondary=resume_tag, back_populates="resume")
+    member = relationship("Member", back_populates="resume")
+    tag = relationship("Tag", secondary=resume_tag, back_populates="resume")
 
-#게시판
+
+# 게시판
 class Post(Base):
-  __tablename__ = 'post'
+    __tablename__ = 'post'
 
-  id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
-  author_id = Column(BIGINT, ForeignKey('member.id'), nullable=False)
-  category_id = Column(BIGINT, ForeignKey('category.id'), nullable=False)
-  title = Column(String(50), nullable=False)
-  contents = Column(String(5000), nullable=False)
-  create_at = Column(TIMESTAMP, default=func.current_timestamp(), nullable=False)
-  update_at = Column(TIMESTAMP, default=func.current_timestamp(),onupdate=func.current_timestamp(), nullable=False)
-  deadline = Column(TIMESTAMP, nullable=False)
-  max_member = Column(TINYINT(unsigned=True), nullable=False, default=0)
-  chat_count = Column(INTEGER(unsigned=True), nullable=False, default=0)
-  like_count = Column(INTEGER(unsigned=True), nullable=False, default=0)
-  current_member = Column(TINYINT(unsigned=True), nullable=False, default=0)
-  status = Column(String(12), nullable=False, default="ACTIVE")
+    id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
+    author_id = Column(BIGINT, ForeignKey('member.id'), nullable=False)
+    category_id = Column(BIGINT, ForeignKey('category.id'), nullable=False)
+    title = Column(String(50), nullable=False)
+    contents = Column(String(5000), nullable=False)
+    create_at = Column(TIMESTAMP, default=func.current_timestamp(), nullable=False)
+    update_at = Column(TIMESTAMP, default=func.current_timestamp(), onupdate=func.current_timestamp(), nullable=False)
+    deadline = Column(TIMESTAMP, nullable=False)
+    max_member = Column(TINYINT(unsigned=True), nullable=False, default=0)
+    chat_count = Column(INTEGER(unsigned=True), nullable=False, default=0)
+    like_count = Column(INTEGER(unsigned=True), nullable=False, default=0)
+    current_member = Column(TINYINT(unsigned=True), nullable=False, default=0)
+    status = Column(String(12), nullable=False, default="ACTIVE")
 
-  member = relationship("Member", back_populates="post")
-  alarm = relationship("Alarm", back_populates="post")
-  tag = relationship("Tag", secondary=post_tag, back_populates="post")
-  like = relationship("Like", back_populates="post")
-  comment = relationship("Comment", back_populates="post")
-  chatroom = relationship("Chatroom", back_populates="post")
+    member = relationship("Member", back_populates="post")
+    alarm = relationship("Alarm", back_populates="post")
+    tag = relationship("Tag", secondary=post_tag, back_populates="post")
+    like = relationship("Like", back_populates="post")
+    comment = relationship("Comment", back_populates="post")
+    chatroom = relationship("Chatroom", back_populates="post")
 
-#좋아요
+
+# 좋아요
 class Like(Base):
-  __tablename__ = 'like'
+    __tablename__ = 'like'
 
-  id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
-  post_id = Column(BIGINT, ForeignKey('post.id'), nullable=False)
-  user_id = Column(BIGINT, ForeignKey('member.id'), nullable=False)
+    id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
+    post_id = Column(BIGINT, ForeignKey('post.id'), nullable=False)
+    user_id = Column(BIGINT, ForeignKey('member.id'), nullable=False)
 
-  member = relationship("Member", back_populates="like")
-  post = relationship("Post", back_populates="like")
+    member = relationship("Member", back_populates="like")
+    post = relationship("Post", back_populates="like")
 
-#댓글
+
+# 댓글
 class Comment(Base):
-  __tablename__ = 'comment'
+    __tablename__ = 'comment'
 
-  id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
-  post_id = Column(BIGINT, ForeignKey('post.id'), nullable=False)
-  user_id = Column(BIGINT, ForeignKey('member.id'), nullable=False)
-  parent_id = Column(BIGINT, ForeignKey('comment.id'))
-  content = Column(String(255), nullable=False)
-  status = Column(String(20), nullable=False)
-  create_at = Column(TIMESTAMP, nullable=False, default=func.current_timestamp())
-  update_at = Column(TIMESTAMP, nullable=False, default=func.current_timestamp())
+    id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
+    post_id = Column(BIGINT, ForeignKey('post.id'), nullable=False)
+    user_id = Column(BIGINT, ForeignKey('member.id'), nullable=False)
+    parent_id = Column(BIGINT, ForeignKey('comment.id'))
+    content = Column(String(255), nullable=False)
+    status = Column(String(20), nullable=False)
+    create_at = Column(TIMESTAMP, nullable=False, default=func.current_timestamp())
+    update_at = Column(TIMESTAMP, nullable=False, default=func.current_timestamp())
 
-  member = relationship("Member", back_populates="comment")
-  post = relationship("Post", back_populates="comment")
+    member = relationship("Member", back_populates="comment")
+    post = relationship("Post", back_populates="comment")
 
-#카테고리
+
+# 카테고리
 class Category(Base):
-  __tablename__ = 'category'
+    __tablename__ = 'category'
 
-  id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
-  name = Column(String(30), nullable=False)
+    id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
+    name = Column(String(30), nullable=False)
 
-  tag = relationship("Tag", back_populates="category")
-#알람
+    tag = relationship("Tag", back_populates="category")
+
+
+# 알람
 class Alarm(Base):
     __tablename__ = 'alarm'
 
@@ -142,19 +149,20 @@ class Alarm(Base):
     receiver = relationship("Member", foreign_keys=[receiver_id], back_populates="alarm_received")
     post = relationship("Post", back_populates="alarm")
 
-#채팅방
+
+# 채팅방
 class Chatroom(Base):
-  __tablename__ = 'chatroom'
+    __tablename__ = 'chatroom'
 
-  id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
-  post_id = Column(BIGINT, ForeignKey('post.id'), nullable=False)
+    id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
+    post_id = Column(BIGINT, ForeignKey('post.id'), nullable=False)
 
-  post = relationship("Post", back_populates="chatroom")
-  message = relationship("Message", back_populates="chatroom")
-  member = relationship("Member", secondary=member_chatroom, back_populates="chatroom")
+    post = relationship("Post", back_populates="chatroom")
+    message = relationship("Message", back_populates="chatroom")
+    member = relationship("Member", secondary=member_chatroom, back_populates="chatroom")
 
 
-#채팅방 참가 멤버
+# 채팅방 참가 멤버
 # class MemberChatroom(Base):
 #   __tablename__ = 'member_chatroom'
 #
@@ -165,34 +173,33 @@ class Chatroom(Base):
 #   member = relationship("Member", back_populates="chatroom")
 #   chatroom = relationship("Chatroom", back_populates="member")
 
-#채팅내역
+# 채팅내역
 class Message(Base):
-  __tablename__ = 'message'
+    __tablename__ = 'message'
 
-  id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
-  chatroom_id = Column(BIGINT, ForeignKey('chatroom.id'), nullable=False)
-  member_id = Column(BIGINT, ForeignKey('member.id'), nullable=False)
-  contents = Column(String(255), nullable=False)
-  create_at = Column(TIMESTAMP, default=func.current_timestamp(), nullable=False)
+    id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
+    chatroom_id = Column(BIGINT, ForeignKey('chatroom.id'), nullable=False)
+    member_id = Column(BIGINT, ForeignKey('member.id'), nullable=False)
+    contents = Column(String(255), nullable=False)
+    create_at = Column(TIMESTAMP, default=func.current_timestamp(), nullable=False)
 
-  member = relationship("Member", back_populates="message")
-  chatroom = relationship("Chatroom", back_populates="message")
+    member = relationship("Member", back_populates="message")
+    chatroom = relationship("Chatroom", back_populates="message")
 
-#태그
+
+# 태그
 class Tag(Base):
-  __tablename__ = 'tag'
+    __tablename__ = 'tag'
 
-  id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
-  category_key = Column(BIGINT, ForeignKey('category.id'), nullable=False)
-  name = Column(String(30), nullable=False)
-  use_count = Column(Integer, nullable=False, default=0)
+    id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
+    category_id = Column(BIGINT, ForeignKey('category.id'), nullable=False)
+    name = Column(String(30), nullable=False)
+    use_count = Column(Integer, nullable=False, default=0)
 
-  category = relationship("Category", back_populates="tag")
-  member = relationship("Member", secondary=member_tag, back_populates="tag")
-  post = relationship("Post", secondary=post_tag, back_populates="tag")
-  resume = relationship("Resume", secondary=resume_tag, back_populates="tag")
-
-
+    category = relationship("Category", back_populates="tag")
+    member = relationship("Member", secondary=member_tag, back_populates="tag")
+    post = relationship("Post", secondary=post_tag, back_populates="tag")
+    resume = relationship("Resume", secondary=resume_tag, back_populates="tag")
 
 # #관심태그 sqlalchemy model
 # class MemberTag(Base):
