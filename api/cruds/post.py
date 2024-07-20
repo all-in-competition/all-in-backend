@@ -1,29 +1,36 @@
+from typing import Sequence, Union
 from api.models.model import Post, Tag
 from fastapi import HTTPException
+from fastapi_pagination.cursor import CursorParams
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from api.schemas.post import PostCreate, PostSummaryResponse, PostDetailResponse, PostResponse
 from starlette import status
+from fastapi_pagination.ext.sqlalchemy import paginate
 
 
-def get_posts(db: Session):
-    db_post_list = db.query(Post).order_by(Post.create_at.desc()).all()
-
+def post_to_summary_response(posts: Sequence[Post]) -> Union[Sequence[PostSummaryResponse], None]:
     return [PostSummaryResponse(
-        author_name=db_post.member.nickname,
-        status=db_post.status,
-        chat_count=db_post.chat_count,
-        like_count=db_post.like_count,
-        create_at=db_post.create_at,
-        deadline=db_post.deadline,
-        title=db_post.title,
-        tags=[db_tag.name for db_tag in db_post.tag],
-        category_id = db_post.category_id
-    ) for db_post in db_post_list]
+        author_name=post.member.nickname,
+        status=post.status,
+        chat_count=post.chat_count,
+        like_count=post.like_count,
+        create_at=post.create_at,
+        deadline=post.deadline,
+        title=post.title,
+        tags=[tag.name for tag in post.tag],
+        category_id=post.category_id
+    ) for post in posts]
+
+
+def get_posts(db: Session, params: CursorParams):
+    query = db.query(Post).order_by(Post.create_at.desc())
+    return paginate(query, params, transformer=post_to_summary_response)
+
 
 def get_post(post_id: int, db: Session) -> PostDetailResponse:
     try:
-        db_post = db.query(Post).filter(Post.id == post_id).first()
+        db_post = db.query(Post).filter(post_id == Post.id).first()
         if db_post is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Post not found')
         post_detail = PostDetailResponse(
@@ -32,6 +39,7 @@ def get_post(post_id: int, db: Session) -> PostDetailResponse:
         return post_detail
     except SQLAlchemyError as e:
         raise HTTPException(e)
+
 
 def create_post(db: Session, post: PostCreate) -> PostResponse:
     try:
@@ -46,7 +54,7 @@ def create_post(db: Session, post: PostCreate) -> PostResponse:
         db.add(db_post)
 
         for tag_name in post.tags:
-            db_tag = db.query(Tag).filter(Tag.name == tag_name).first()
+            db_tag = db.query(Tag).filter(tag_name == Tag.name).first()
             if db_tag is None:
                 db_tag = Tag(name=tag_name, use_count=1)
                 db.add(db_tag)
@@ -69,9 +77,10 @@ def create_post(db: Session, post: PostCreate) -> PostResponse:
         db.rollback()
         raise e
 
+
 def like_post(post_id: int, user_id: int, db: Session):
     try:
-        db_post = db.query(Post).filter(Post.id == post_id).first()
+        db_post = db.query(Post).filter(post_id == Post.id).first()
         if db_post is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Post not found')
         db_post.like_count += 1
