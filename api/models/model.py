@@ -91,7 +91,6 @@ class Post(Base):
   like = relationship("Like", back_populates="post")
   comment = relationship("Comment", back_populates="post")
   chatroom = relationship("Chatroom", back_populates="post")
-  category = relationship("Category", back_populates="post")
 
 #좋아요
 class Like(Base):
@@ -127,8 +126,7 @@ class Category(Base):
   id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
   name = Column(String(30), nullable=False)
 
-  post = relationship("Post", back_populates="category")
-
+  tag = relationship("Tag", back_populates="category")
 #알람
 class Alarm(Base):
     __tablename__ = 'alarm'
@@ -185,9 +183,11 @@ class Tag(Base):
   __tablename__ = 'tag'
 
   id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
+  category_key = Column(BIGINT, ForeignKey('category.id'), nullable=False)
   name = Column(String(30), nullable=False)
   use_count = Column(Integer, nullable=False, default=0)
 
+  category = relationship("Category", back_populates="tag")
   member = relationship("Member", secondary=member_tag, back_populates="tag")
   post = relationship("Post", secondary=post_tag, back_populates="tag")
   resume = relationship("Resume", secondary=resume_tag, back_populates="tag")
