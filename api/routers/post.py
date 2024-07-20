@@ -1,3 +1,4 @@
+from api.schemas.like import LikeResponse
 from fastapi import APIRouter, Depends, HTTPException, Request
 from api.db import get_db
 from api.schemas.post import PostCreate, PostDetailResponse, PostSummaryResponse
@@ -35,9 +36,10 @@ async def create_post(post: PostCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/{post_id}/like")
-async def like_post(request: Request, post_id: int, db: Session = Depends(get_db)):
+async def toggle_like_post(request: Request, post_id: int, db: Session = Depends(get_db)) -> LikeResponse:
     try:
-        current_user_id = request.session['user']
-        crud_post.like_post(post_id, current_user_id, db)
+        current_user_id = request.session['user']['id']
+        result = crud_post.toggle_like_post(post_id, current_user_id, db)
+        return result
     except SQLAlchemyError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
