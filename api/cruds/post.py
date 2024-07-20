@@ -1,5 +1,6 @@
 from typing import Sequence, Union
-from api.models.model import Post, Tag
+from api.models.model import Post, Tag, Like
+from api.schemas.like import LikeResponse
 from fastapi import HTTPException
 from fastapi_pagination.cursor import CursorParams
 from sqlalchemy.exc import SQLAlchemyError
@@ -78,13 +79,29 @@ def create_post(db: Session, post: PostCreate) -> PostResponse:
         raise e
 
 
-def like_post(post_id: int, user_id: int, db: Session):
+def toggle_like_post(post_id: int, user_id: int, db: Session):
     try:
         db_post = db.query(Post).filter(post_id == Post.id).first()
         if db_post is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Post not found')
-        db_post.like_count += 1
+
+        like = db.query(Like).filter(post_id == Like.post_id, user_id == Like.user_id).first()
+
+        if like:
+            db_post.like_count -= 1
+            db.delete(like)
+            is_liked = False
+        else:
+            like = Like(user_id=user_id, post_id=post_id)
+            db_post.like_count += 1
+            db.add(like)
+            is_liked = True
         db.commit()
+        return LikeResponse(
+            user_id=user_id,
+            post_id=post_id,
+            is_liked=is_liked
+        )
     except SQLAlchemyError as e:
         db.rollback()
         raise e
