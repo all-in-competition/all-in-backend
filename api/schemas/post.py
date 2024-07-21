@@ -38,7 +38,6 @@ class PostUpdate(BaseModel):
   category_id : int
   title : str
   contents : str
-  update_at : datetime
   deadLine : datetime
   max_member : int
   tags : List[str]

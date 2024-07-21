@@ -93,7 +93,6 @@ def update_post(db: Session, post: PostUpdate, user_info: MemberCreate) -> PostR
             db_post.contents=post.contents,
             db_post.deadLine=post.deadLine,
             db_post.max_member=post.max_member
-            db_post.update_at=post.update_at
 
         db.query(post_tag).filter_by(post_id=db_post.id).delete()
 
