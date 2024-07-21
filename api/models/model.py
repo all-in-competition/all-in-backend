@@ -142,8 +142,8 @@ class Alarm(Base):
     sender_id = Column(BIGINT, ForeignKey('member.id'), nullable=False)
     receiver_id = Column(BIGINT, ForeignKey('member.id'), nullable=False)
     post_id = Column(BIGINT, ForeignKey('post.id'), nullable=False)
-    type = Column(TINYINT(unsigned=True), nullable=False)
-    contents = Column(String(255))
+    create_at = Column(TIMESTAMP, default=func.current_timestamp(), nullable=False)
+    type = Column(TINYINT(unsigned=True))
 
     sender = relationship("Member", foreign_keys=[sender_id], back_populates="alarm_sent")
     receiver = relationship("Member", foreign_keys=[receiver_id], back_populates="alarm_received")
