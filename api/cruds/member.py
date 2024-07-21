@@ -1,10 +1,12 @@
 from fastapi import HTTPException
-from sqlalchemy.orm import Session
-from sqlalchemy import and_
+from sqlalchemy.orm import Session, InstrumentedAttribute
+from sqlalchemy import and_, BIGINT
 import api.models.model as member_model
 from api.schemas import login as login_schema
 from api.schemas import member as member_schema
 from aiohttp import ClientSession
+from starlette import status
+
 
 def create_member(db: Session, user_info: dict) -> member_schema.MemberCreate:
     new_member = member_model.Member(
@@ -37,6 +39,12 @@ def find_member(db: Session, user_info):
          )
     else:
         return None
+
+def find_member_name(db: Session, uid: int):
+    db_member = db.query(member_model.Member).filter_by(id = uid).first()
+    if db_member is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Member not found')
+    return db_member.nickname
 
 async def get_kakao_user_info(token):
     user_info_url = "https://kapi.kakao.com/v2/user/me"

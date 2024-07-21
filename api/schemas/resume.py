@@ -14,12 +14,17 @@ class ResumeCreate(BaseModel):
   contents : str
   public : bool
 
+class ResumeSummaryResponse(BaseModel):
+  member_name : str
+  tag_id : List[int]
+  contents : str
+
 class ResumeResponse(BaseModel):
   member_name : str
   contents : str
   #tag :
 
-class ResumeDitailResponse(BaseModel):
+class ResumeDetailResponse(BaseModel):
   member_name: str
   contents: str
-  #tag :
+  tags: List[int]

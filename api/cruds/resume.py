@@ -1,12 +1,18 @@
-from api.cruds.tag import get_tag
+from typing import Sequence, Union, List
+
+from api.cruds.member import find_member_name
 from api.models.model import Resume, Member, Tag, resume_tag
 from fastapi import HTTPException
+from fastapi_pagination.cursor import CursorParams
+from requests import session
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from api.schemas import member as member_schema
-from api.schemas.resume import ResumeCreate, ResumeUpdate, ResumeResponse
+from api.schemas.resume import ResumeCreate, ResumeUpdate, ResumeResponse, ResumeDetailResponse, ResumeSummaryResponse
 from sqlalchemy import update
 from starlette import status
+from fastapi_pagination.ext.sqlalchemy import paginate
+
 
 
 def create_resume(db: Session, uid: member_schema.MemberCreate):
@@ -51,19 +57,34 @@ def update_resume(new: ResumeUpdate, db: Session, user_info: member_schema.Membe
         db.rollback()
         raise e
 
-def get_resumes(db: Session):
+
+
+def get_resumes(db: Session, params: CursorParams):
     db_resume_list = db.query(Resume).all()
-    return [ResumeResponse(
-        member_name=db.query(Member).filter_by(id=db_resume.member_id).first().nickname,
-        content=db_resume.contents) for db_resume in db_resume_list]
+
+    resume_to_summary_response = [ResumeSummaryResponse(
+        member_name=find_member_name(resume.member_id),
+        tag_id=resume.tag.id,
+        contents=resume.contents
+        ) for resume in db_resume_list]
+    return paginate(db_resume_list, params, transformer=resume_to_summary_response)
+
 
 def get_resume(id: int, db: Session):
     try:
-        db_resume = db.query(Resume).filter_by(id = id).first()
+        db_resume = db.query(Resume).filter(id == Resume.id).first()
         if db_resume is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Post not found')
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Resume not found')
+
+        tags = []
+        tag_id = db.query(resume_tag).filter_by(resume_id=db_resume.id).all()
+        for id in tag_id:
+            tags.append(id[0])
+
         resume_detail = ResumeDetailResponse(
-            contents=db_resume.contents
+            member_name=find_member_name(db=db, uid=db_resume.member_id),
+            contents=db_resume.contents,
+            tags=tags
         )
         return resume_detail
     except SQLAlchemyError as e:
