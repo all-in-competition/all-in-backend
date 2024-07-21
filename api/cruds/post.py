@@ -55,12 +55,10 @@ def create_post(db: Session, post: PostCreate) -> PostResponse:
         db.add(db_post)
 
         for tag_name in post.tags:
-            db_tag = db.query(Tag).filter(tag_name == Tag.name).first()
+            db_tag = db.query(Tag).filter(tag_name == Tag.name, post.category_id == Tag.category_id).first()
             if db_tag is None:
-                db_tag = Tag(name=tag_name, use_count=1)
+                db_tag = Tag(name=tag_name, category_id=post.category_id)
                 db.add(db_tag)
-            else:
-                db_tag.use_count += 1
 
             db_post.tag.append(db_tag)
 
