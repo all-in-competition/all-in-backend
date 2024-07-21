@@ -58,16 +58,14 @@ def update_resume(new: ResumeUpdate, db: Session, user_info: member_schema.Membe
         db.rollback()
         raise e
 
-
+def resume_to_summary_response(resumes: Sequence[Resume]) -> Union[Sequence[ResumeSummaryResponse], None]:
+    return [ResumeSummaryResponse(
+        member_name= resume.member.nickname,
+        tag_name=[tag.name for tag in resume.tag]
+    )for resume in resumes]
 
 def get_resumes(db: Session, params: CursorParams):
-    db_resume_list = db.query(Resume).all()
-
-    resume_to_summary_response = [ResumeSummaryResponse(
-        member_name=find_member_name(resume.member_id),
-        tag_id=resume.tag.id,
-        contents=resume.contents
-        ) for resume in db_resume_list]
+    db_resume_list = db.query(Resume).order_by(Resume.update_at.desc())
     return paginate(db_resume_list, params, transformer=resume_to_summary_response)
 
 
