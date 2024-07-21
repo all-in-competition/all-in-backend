@@ -29,13 +29,11 @@ def update_resume(new: ResumeUpdate, db: Session, user_info: member_schema.Membe
             db_resume.public = new.public
 
         for tag_name in new.tag_name:
+            tag_name = tag_name.lower()
             db_tag = db.query(Tag).filter(tag_name == Tag.name, new.category_id == Tag.category_id).first()
             if db_tag is None:
-                db_tag = Tag(name=tag_name, category_id=new.category_id, use_count=1)
+                db_tag = Tag(name=tag_name, category_id=new.category_id)
                 db.add(db_tag)
-
-            else:
-                db_tag.use_count += 1
 
             db_resume.tag.append(db_tag)
 
