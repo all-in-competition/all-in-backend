@@ -64,6 +64,7 @@ class Resume(Base):
     member_id = Column(BIGINT, ForeignKey('member.id'), nullable=False)
     contents = Column(String(5000), nullable=False)
     public = Column(Boolean, nullable=False)
+    update_at = Column(TIMESTAMP, default=func.current_timestamp(), onupdate=func.current_timestamp(), nullable=False)
 
     member = relationship("Member", back_populates="resume")
     tag = relationship("Tag", secondary=resume_tag, back_populates="resume")

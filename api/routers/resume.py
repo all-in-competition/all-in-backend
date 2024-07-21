@@ -1,20 +1,21 @@
 from fastapi import APIRouter, Query, Depends, HTTPException, Request
 from api.db import get_db
 from api.models.model import Resume as ResumeModel
-from api.schemas.resume import ResumeUpdate, ResumeResponse
+from api.schemas.resume import ResumeUpdate, ResumeResponse, ResumeSummaryResponse
 from sqlalchemy import update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from starlette import status
 from api.cruds import resume as crud_resume
 from starlette.responses import JSONResponse
+from fastapi_pagination.cursor import CursorPage, CursorParams
 
 router = APIRouter(prefix="/resumes", tags=["resumes"])
 
 @router.get("")
-async def get_resumes(db: Session = Depends(get_db)):
+async def get_resumes(db: Session = Depends(get_db), params: CursorParams = Depends()) -> CursorPage[ResumeSummaryResponse]:
     try:
-       return crud_resume.get_resumes(db)
+       return crud_resume.get_resumes(db, params)
     except SQLAlchemyError as e:
        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 

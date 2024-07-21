@@ -1,12 +1,13 @@
 from api.schemas.like import LikeResponse
 from fastapi import APIRouter, Depends, HTTPException, Request
 from api.db import get_db
-from api.schemas.post import PostCreate, PostDetailResponse, PostSummaryResponse
+from api.schemas.post import PostCreate, PostDetailResponse, PostSummaryResponse, PostUpdate
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from starlette import status
 from api.cruds import post as crud_post
 from fastapi_pagination.cursor import CursorPage, CursorParams
+from starlette.responses import JSONResponse
 
 router = APIRouter(prefix="/posts", tags=["posts"])
 
@@ -41,5 +42,13 @@ async def toggle_like_post(request: Request, post_id: int, db: Session = Depends
         current_user_id = request.session['user']['id']
         result = crud_post.toggle_like_post(post_id, current_user_id, db)
         return result
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@router.put("/{post_id}/update")
+async def update_resume(request: Request, post: PostUpdate, db: Session = Depends(get_db)):
+    try:
+        user_info = request.session["user"]
+        return crud_post.update_post(db, post, user_info)
     except SQLAlchemyError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

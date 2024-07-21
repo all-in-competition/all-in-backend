@@ -20,7 +20,6 @@ class PostSummaryResponse(BaseModel):
   create_at: datetime
   title: str
   tags: List[str]
-  category_id: int
 
 class PostDetailResponse(BaseModel):
   contents: str
@@ -35,9 +34,10 @@ class PostResponse(BaseModel):
   current_member : int
 
 class PostUpdate(BaseModel):
+  id : int
   category_id : int
   title : str
   contents : str
-  update_at : datetime
   deadLine : datetime
   max_member : int
+  tags : List[str]
