@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import List
 
 from pydantic import BaseModel, Field
@@ -9,7 +8,6 @@ class ResumeUpdate(BaseModel):
   public : bool = False
   category_id : int
   tag_name : List[str]
-  update_at: datetime
 
 class ResumeCreate(BaseModel):
   member_id : int

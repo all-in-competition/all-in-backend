@@ -1,7 +1,6 @@
 from typing import Sequence, Union, List
 from api.models.model import Post, Tag, Like, resume_tag
 from api.schemas.like import LikeResponse
-from api.schemas.tag import TagCreate
 from fastapi import HTTPException
 from fastapi_pagination.cursor import CursorParams
 from sqlalchemy.exc import SQLAlchemyError
