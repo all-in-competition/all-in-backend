@@ -1,5 +1,4 @@
 from typing import Sequence, Union, List
-
 from api.cruds.member import find_member_name
 from api.cruds.tag import get_tag
 from api.models.model import Resume, Member, Tag, resume_tag
