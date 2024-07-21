@@ -46,7 +46,6 @@ def create_post(db: Session, post: PostCreate) -> PostResponse:
     try:
         db_post = Post(
             author_id=post.author_id,
-            category_id=post.category_id,
             title=post.title,
             contents=post.contents,
             deadline=post.deadline,
@@ -55,6 +54,7 @@ def create_post(db: Session, post: PostCreate) -> PostResponse:
         db.add(db_post)
 
         for tag_name in post.tags:
+            tag_name = tag_name.lower()
             db_tag = db.query(Tag).filter(tag_name == Tag.name, post.category_id == Tag.category_id).first()
             if db_tag is None:
                 db_tag = Tag(name=tag_name, category_id=post.category_id)

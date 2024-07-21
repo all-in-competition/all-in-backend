@@ -75,7 +75,6 @@ class Post(Base):
 
     id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
     author_id = Column(BIGINT, ForeignKey('member.id'), nullable=False)
-    category_id = Column(BIGINT, ForeignKey('category.id'), nullable=False)
     title = Column(String(50), nullable=False)
     contents = Column(String(5000), nullable=False)
     create_at = Column(TIMESTAMP, default=func.current_timestamp(), nullable=False)
@@ -194,7 +193,6 @@ class Tag(Base):
     id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
     category_id = Column(BIGINT, ForeignKey('category.id'), nullable=False)
     name = Column(String(30), nullable=False)
-    use_count = Column(Integer, nullable=False, default=0)
 
     category = relationship("Category", back_populates="tag")
     member = relationship("Member", secondary=member_tag, back_populates="tag")
