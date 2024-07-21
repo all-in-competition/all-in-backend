@@ -21,13 +21,26 @@ def create_resume(db: Session, uid: member_schema.MemberCreate):
         db.rollback()
         raise e
 
-def update_resume(content: str, public: bool, db: Session, user_info: member_schema.MemberCreate):
+def update_resume(new: ResumeUpdate, db: Session, user_info: member_schema.MemberCreate):
     try:
         db_resume = db.query(Resume).filter_by(member_id=user_info["id"]).first()
         if db_resume:
-            db_resume.contents = content
-            db_resume.public = public
-            db.commit()
+            db_resume.contents = new.contents
+            db_resume.public = new.public
+
+        for tag_name in new.tag_name:
+            db_tag = db.query(Tag).filter(tag_name == Tag.name, new.category_id == Tag.category_id).first()
+            if db_tag is None:
+                db_tag = Tag(name=tag_name, category_id=new.category_id, use_count=1)
+                db.add(db_tag)
+
+            else:
+                db_tag.use_count += 1
+
+            db_resume.tag.append(db_tag)
+
+        db.commit()
+
     except SQLAlchemyError as e:
         db.rollback()
         raise e
