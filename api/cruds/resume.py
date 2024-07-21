@@ -1,4 +1,5 @@
-from api.models.model import Resume, Member, Tag
+from api.cruds.tag import get_tag
+from api.models.model import Resume, Member, Tag, resume_tag
 from fastapi import HTTPException
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -28,8 +29,15 @@ def update_resume(new: ResumeUpdate, db: Session, user_info: member_schema.Membe
             db_resume.contents = new.contents
             db_resume.public = new.public
 
+        db.query(resume_tag).filter_by(resume_id=db_resume.id).delete()
+
+        tags = []
         for tag_name in new.tag_name:
             tag_name = tag_name.lower()
+            if tag_name not in tags:
+                tags.append(tag_name)
+
+        for tag_name in tags:
             db_tag = db.query(Tag).filter(tag_name == Tag.name, new.category_id == Tag.category_id).first()
             if db_tag is None:
                 db_tag = Tag(name=tag_name, category_id=new.category_id)

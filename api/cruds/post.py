@@ -53,8 +53,13 @@ def create_post(db: Session, post: PostCreate) -> PostResponse:
         )
         db.add(db_post)
 
+        tags = []
         for tag_name in post.tags:
             tag_name = tag_name.lower()
+            if tag_name not in tags:
+                tags.append(tag_name)
+
+        for tag_name in tags:
             db_tag = db.query(Tag).filter(tag_name == Tag.name, post.category_id == Tag.category_id).first()
             if db_tag is None:
                 db_tag = Tag(name=tag_name, category_id=post.category_id)
