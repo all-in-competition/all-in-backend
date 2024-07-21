@@ -1,11 +1,12 @@
 from typing import Sequence, Union
-from api.models.model import Post, Tag, Like
+from api.models.model import Post, Tag, Like, post_tag
 from api.schemas.like import LikeResponse
+from api.schemas.member import MemberCreate
 from fastapi import HTTPException
 from fastapi_pagination.cursor import CursorParams
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
-from api.schemas.post import PostCreate, PostSummaryResponse, PostDetailResponse, PostResponse
+from api.schemas.post import PostCreate, PostSummaryResponse, PostDetailResponse, PostResponse, PostUpdate
 from starlette import status
 from fastapi_pagination.ext.sqlalchemy import paginate
 
@@ -19,8 +20,7 @@ def post_to_summary_response(posts: Sequence[Post]) -> Union[Sequence[PostSummar
         create_at=post.create_at,
         deadline=post.deadline,
         title=post.title,
-        tags=[tag.name for tag in post.tag],
-        category_id=post.category_id
+        tags=[tag.name for tag in post.tag]
     ) for post in posts]
 
 
@@ -52,6 +52,50 @@ def create_post(db: Session, post: PostCreate) -> PostResponse:
             max_member=post.max_member
         )
         db.add(db_post)
+
+        tags = []
+        for tag_name in post.tags:
+            tag_name = tag_name.lower()
+            if tag_name not in tags:
+                tags.append(tag_name)
+
+        for tag_name in tags:
+            db_tag = db.query(Tag).filter(tag_name == Tag.name, post.category_id == Tag.category_id).first()
+            if db_tag is None:
+                db_tag = Tag(name=tag_name, category_id=post.category_id)
+                db.add(db_tag)
+
+            db_post.tag.append(db_tag)
+
+        db.commit()
+
+        return PostResponse(
+            post_id=db_post.id,
+            title=db_post.title,
+            tags=[tag.name for tag in db_post.tag],
+            author_id=db_post.author_id,
+            create_at=db_post.create_at,
+            like_count=db_post.like_count,
+            current_member=db_post.current_member)
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise e
+
+def update_post(db: Session, post: PostUpdate, user_info: MemberCreate) -> PostResponse:
+    try:
+        permission = db.query(Post).filter_by(author_id=user_info["id"], id=post.id).first()
+        if permission is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Have not permission')
+
+        db_post = db.query(Post).filter_by(id=post.id).first()
+        if db_post:
+            db_post.title=post.title,
+            db_post.contents=post.contents,
+            db_post.deadLine=post.deadLine,
+            db_post.max_member=post.max_member
+            db_post.update_at=post.update_at
+
+        db.query(post_tag).filter_by(post_id=db_post.id).delete()
 
         tags = []
         for tag_name in post.tags:
