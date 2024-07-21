@@ -1,6 +1,7 @@
 from typing import Sequence, Union, List
 
 from api.cruds.member import find_member_name
+from api.cruds.tag import get_tag
 from api.models.model import Resume, Member, Tag, resume_tag
 from fastapi import HTTPException
 from fastapi_pagination.cursor import CursorParams
@@ -79,7 +80,7 @@ def get_resume(id: int, db: Session):
         tags = []
         tag_id = db.query(resume_tag).filter_by(resume_id=db_resume.id).all()
         for id in tag_id:
-            tags.append(id[0])
+            tags.append(get_tag(id[0], db).name)
 
         resume_detail = ResumeDetailResponse(
             member_name=find_member_name(db=db, uid=db_resume.member_id),

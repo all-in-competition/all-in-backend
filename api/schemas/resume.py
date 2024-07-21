@@ -27,4 +27,4 @@ class ResumeResponse(BaseModel):
 class ResumeDetailResponse(BaseModel):
   member_name: str
   contents: str
-  tags: List[int]
+  tags: List[str]
