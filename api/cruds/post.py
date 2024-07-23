@@ -81,6 +81,7 @@ def create_post(db: Session, post: PostCreate) -> PostResponse:
         db.rollback()
         raise e
 
+
 def update_post(db: Session, post: PostUpdate, user_info: MemberCreate) -> PostResponse:
     try:
         permission = db.query(Post).filter_by(author_id=user_info["id"], id=post.id).first()
@@ -89,10 +90,10 @@ def update_post(db: Session, post: PostUpdate, user_info: MemberCreate) -> PostR
 
         db_post = db.query(Post).filter_by(id=post.id).first()
         if db_post:
-            db_post.title=post.title,
-            db_post.contents=post.contents,
-            db_post.deadLine=post.deadLine,
-            db_post.max_member=post.max_member
+            db_post.title = post.title,
+            db_post.contents = post.contents,
+            db_post.deadLine = post.deadLine,
+            db_post.max_member = post.max_member
 
         db.query(post_tag).filter_by(post_id=db_post.id).delete()
 
@@ -151,3 +152,7 @@ def toggle_like_post(post_id: int, user_id: int, db: Session):
     except SQLAlchemyError as e:
         db.rollback()
         raise e
+
+
+def is_post_author(db: Session, post_id: int, member_id: int) -> bool:
+    return db.query(Post).filter_by(id=post_id, author_id=member_id).first() is not None
