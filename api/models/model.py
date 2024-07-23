@@ -156,6 +156,7 @@ class Chatroom(Base):
 
     id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
     post_id = Column(BIGINT, ForeignKey('post.id'), nullable=False)
+    chat_type = Column(String(30), nullable=False)
 
     post = relationship("Post", back_populates="chatroom")
     message = relationship("Message", back_populates="chatroom")
