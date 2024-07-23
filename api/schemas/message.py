@@ -1,8 +1,7 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
-class MessageCreate(BaseModel):
-  chatroom_id : int
-  member_id : int
-  content : str
-  create_at : datetime
+class MessageEvent(BaseModel):
+    chatroom_id: int
+    member_id: int
+    contents: str
