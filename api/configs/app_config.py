@@ -12,6 +12,7 @@ class Settings:
     KAKAO_CLIENT_ID: str = config('KAKAO_CLIENT_ID')
     KAKAO_CLIENT_SECRET: str = config('KAKAO_CLIENT_SECRET')
     DB_URL: str = config('DB_URL')
+    REDIS_URL: str = config('REDIS_URL')
 
 
 settings = Settings()
