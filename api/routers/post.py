@@ -55,6 +55,15 @@ async def toggle_like_post(request: Request, post_id: int, db: Session = Depends
     except SQLAlchemyError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
+@router.post("/{post_id}/closed")
+async def toggle_closed_post(request: Request, post_id: int, db: Session = Depends(get_db)):
+    try:
+        current_user_id = request.session['user']['id']
+        result = crud_post.toggle_closed_post(post_id, current_user_id, db)
+        return result
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
 
 @router.put("/{post_id}/update")
 async def update_post(request: Request, post: PostUpdate, db: Session = Depends(get_db)):

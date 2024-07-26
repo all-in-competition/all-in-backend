@@ -135,6 +135,23 @@ def update_post(db: Session, post: PostUpdate, user_info: MemberCreate) -> PostR
         db.rollback()
         raise e
 
+def toggle_closed_post(post_id: int, user_id: int, db: Session):
+    try:
+        db_post = db.query(Post).filter(post_id == Post.id).first()
+        if db_post is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Post not found')
+        print(db_post.status)
+        print("*****************************************")
+        if db_post.author_id == user_id:
+            if db_post.status == "ONGOING":
+                db_post.status = "CLOSED"
+            else:
+                db_post.status = "ONGOING"
+            db.commit()
+        return db_post.status
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise e
 
 def toggle_like_post(post_id: int, user_id: int, db: Session):
     try:
