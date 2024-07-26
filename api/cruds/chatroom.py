@@ -91,3 +91,56 @@ def get_public_chatroom(db: Session, post_id: int, member_id: int) -> PublicChat
         chatroom_id=public_chatroom.id,
         chat_type="public"
     )
+
+
+def create_chatroom(db: Session, post_id: int, chat_type: str, user_id: Optional[int]):
+    # 채팅방 만들고
+    chatroom = Chatroom(post_id=post_id, chat_type=chat_type)
+    db.add(chatroom)
+    db.flush()
+    db.refresh(chatroom)
+
+    # 작성자를 추가한다
+    author = db.query(Member).join(Post, post_id == Post.id).filter(Member.id == Post.author_id).first()
+    if author is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Author not found")
+    if is_chatroom_member(db, chatroom.id, author.id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Author already participated")
+    chatroom.member.append(author)
+
+    # 채팅 타입이 private 인 경우, 질문자도 추가한다
+    if chatroom.chat_type == "private":
+        questioner = db.query(Member).filter(Member.id == user_id).first()
+        if questioner is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found")
+        if is_chatroom_member(db, chatroom.id, questioner.id):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Member already participated")
+
+        # public chatroom 찾기
+        public_chatroom = db.query(Chatroom).filter_by(post_id=post_id, chat_type="public").first()
+        if public_chatroom is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Public chatroom not found")
+
+        # 사용자가 public chatroom의 멤버인지 확인
+        is_teammate = db.query(member_chatroom).filter_by(
+            chatroom_id=public_chatroom.id,
+            member_id=user_id
+        ).first() is not None
+
+        chatroom.member.append(questioner)
+        db.commit()
+        return PrivateChatroom(
+            chatroom_id=chatroom.id,
+            member_id=questioner.id,
+            member_name=questioner.nickname,
+            chat_type=chatroom.chat_type,
+            is_teammate=is_teammate
+        )
+    elif chatroom.chat_type == "public":
+        db.commit()
+        return PublicChatroom(
+            chatroom_id=chatroom.id,
+            chat_type=chatroom.chat_type
+        )
+    else:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid chatroom type")
