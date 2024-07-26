@@ -12,3 +12,7 @@ class PrivateChatroom(BaseModel):
 class PublicChatroom(BaseModel):
     chatroom_id: int
     chat_type: str
+
+class ExitChatroom(BaseModel):
+    chatroom_id: int
+    member_id: int
