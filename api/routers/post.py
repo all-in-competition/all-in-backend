@@ -29,9 +29,12 @@ async def get_post(post_id: int, db: Session = Depends(get_db)) -> PostDetailRes
 
 
 @router.post("")
-async def create_post(post: PostCreate, db: Session = Depends(get_db)):
+async def create_post(request: Request, post: PostCreate, db: Session = Depends(get_db)):
     try:
-        return crud_post.create_post(db, post)
+        user_id = request.session.get("user", {}).get("id")
+        if user_id is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        return crud_post.create_post(db, post, user_id)
     except SQLAlchemyError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
@@ -44,6 +47,7 @@ async def toggle_like_post(request: Request, post_id: int, db: Session = Depends
         return result
     except SQLAlchemyError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
 
 @router.put("/{post_id}/update")
 async def update_post(request: Request, post: PostUpdate, db: Session = Depends(get_db)):
