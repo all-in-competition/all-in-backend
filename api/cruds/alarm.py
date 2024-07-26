@@ -16,7 +16,8 @@ def create_alarm(db: Session, alarm: AlarmCreate):
         new_alarm = Alarm(
             sender_id= alarm.sender_id,
             receiver_id = alarm.receiver_id,
-            post_id = alarm.post_id
+            post_id = alarm.post_id,
+            type =  alarm.type
         )
         db.add(new_alarm)
         db.commit()

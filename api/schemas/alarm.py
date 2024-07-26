@@ -7,7 +7,7 @@ class AlarmCreate(BaseModel):
       sender_id : int
       receiver_id : int
       post_id : int
-      #type : int
+      type : int
 
 class AlarmSummaryResponse(BaseModel):
     sender_name : str
@@ -22,3 +22,7 @@ class AlarmDetailResponse(BaseModel):
     post_title : str
     post_id : int
     create_at : datetime
+
+class Confirm(BaseModel):
+    sender_id : int
+    post_id : int
