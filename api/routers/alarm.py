@@ -1,10 +1,11 @@
 from api.db import get_db
 from api.models.model import Alarm, Post
-from api.routers.websocket import broadcast
 from api.schemas.alarm import AlarmCreate, AlarmSummaryResponse, Confirm
 from api.schemas.member import MemberCreate
 from api.cruds import alarm as crud_alarm
 from api.cruds import chatroom as crud_chatroom
+from api.configs.app_config import settings
+from broadcaster import Broadcast
 from fastapi import WebSocket, APIRouter, WebSocketDisconnect, Depends, status, WebSocketException, Request, HTTPException
 from fastapi_pagination.cursor import CursorParams, CursorPage
 import asyncio
@@ -14,6 +15,7 @@ from starlette import status
 from starlette.responses import JSONResponse
 
 router = APIRouter(prefix="/alarm", tags=["alarm"])
+broadcast = Broadcast(settings.REDIS_URL)
 
 
 async def create_alarm(alarm: AlarmCreate, db: Session ):
@@ -85,7 +87,13 @@ async def confirm(confirm: Confirm, request: Request, db: Session = Depends(get_
         current_id = request.session['user']['id']
         target = db.query(Post).filter_by(id=confirm.post_id).first()
         if (current_id == target.author_id):
-            chatroom_id = 1
+            chatroom_id = int
+            for chatroom in target.chatroom:
+                if (chatroom.chat_type == "public"):
+                    chatroom_id = chatroom.id
+                    break
+                else:
+                    return JSONResponse({"message": "no public chatroom"})
             return crud_chatroom.add_member_to_chatroom(db, chatroom_id, confirm.sender_id)
         else:
             return JSONResponse({"message": "no permission"})

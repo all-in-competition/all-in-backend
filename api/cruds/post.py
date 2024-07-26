@@ -1,5 +1,5 @@
 from typing import Sequence, Union
-from api.models.model import Post, Tag, Like, post_tag
+from api.models.model import Post, Tag, Like, post_tag, Chatroom
 from api.schemas.like import LikeResponse
 from api.schemas.member import MemberCreate
 from fastapi import HTTPException
@@ -66,6 +66,9 @@ def create_post(db: Session, post: PostCreate) -> PostResponse:
                 db.add(db_tag)
 
             db_post.tag.append(db_tag)
+
+        db_chatroom = Chatroom(chat_type="public")
+        db_post.chatroom.append(db_chatroom)
 
         db.commit()
 
