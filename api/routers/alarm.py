@@ -1,4 +1,5 @@
 from api.db import get_db
+from api.models.model import Alarm
 from api.routers.websocket import broadcast
 from api.schemas.alarm import AlarmCreate, AlarmSummaryResponse
 from api.schemas.member import MemberCreate
@@ -68,6 +69,11 @@ async def get_alarms(request: Request, db: Session = Depends(get_db), params: Cu
 @router.get('/{alarm_id}')
 async def get_alarm(alarm_id: int, request: Request, db: Session = Depends(get_db)):
     try:
-        return crud_alarm.get_alarm(alarm_id, db)
+        current_id = request.session['user']['id']
+        target = db.query(Alarm).filter_by(id = alarm_id).first()
+        if (current_id == target.receiver_id):
+            return crud_alarm.get_alarm(alarm_id, db)
+        else:
+            return JSONResponse({"message": "no permission"})
     except SQLAlchemyError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
