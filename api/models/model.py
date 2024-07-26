@@ -85,7 +85,7 @@ class Post(Base):
     chat_count = Column(INTEGER(unsigned=True), nullable=False, default=0)
     like_count = Column(INTEGER(unsigned=True), nullable=False, default=0)
     current_member = Column(TINYINT(unsigned=True), nullable=False, default=0)
-    status = Column(String(12), nullable=False, default="ACTIVE")
+    status = Column(String(12), nullable=False, default="ONGOING")
 
     member = relationship("Member", back_populates="post")
     alarm = relationship("Alarm", back_populates="post")
