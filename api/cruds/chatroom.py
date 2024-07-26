@@ -97,7 +97,7 @@ def get_public_chatroom(db: Session, post_id: int, member_id: int) -> PublicChat
     )
 
 
-def create_chatroom(db: Session, post_id: int, chat_type: str, user_id: Optional[int]):
+def create_chatroom(db: Session, post_id: int, chat_type: str, user_id: Optional[int] = None):
     # 채팅방 만들고
     chatroom = Chatroom(post_id=post_id, chat_type=chat_type)
     db.add(chatroom)
