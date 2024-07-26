@@ -1,4 +1,6 @@
 from typing import Sequence, Union
+
+from api.cruds.chatroom import create_chatroom
 from api.models.model import Post, Tag, Like, post_tag, Chatroom
 from api.schemas.like import LikeResponse
 from api.schemas.member import MemberCreate
@@ -67,8 +69,9 @@ def create_post(db: Session, post: PostCreate) -> PostResponse:
 
             db_post.tag.append(db_tag)
 
-        db_chatroom = Chatroom(chat_type="public")
-        db_post.chatroom.append(db_chatroom)
+        db.flush()
+        db.refresh(db_post)
+        create_chatroom(db, db_post.id, "public")
 
         db.commit()
 
