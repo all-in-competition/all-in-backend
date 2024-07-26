@@ -16,6 +16,7 @@ from fastapi_pagination.ext.sqlalchemy import paginate
 def post_to_summary_response(posts: Sequence[Post]) -> Union[Sequence[PostSummaryResponse], None]:
     return [PostSummaryResponse(
         author_name=post.member.nickname,
+        post_id=post.id,
         status=post.status,
         chat_count=post.chat_count,
         like_count=post.like_count,

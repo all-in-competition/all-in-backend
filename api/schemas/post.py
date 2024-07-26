@@ -15,6 +15,7 @@ class PostCreate(BaseModel):
 
 class PostSummaryResponse(BaseModel):
     author_name: str
+    post_id: int
     status: str
     chat_count: int
     like_count: int
