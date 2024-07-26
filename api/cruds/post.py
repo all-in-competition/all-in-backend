@@ -163,3 +163,9 @@ def toggle_like_post(post_id: int, user_id: int, db: Session):
 
 def is_post_author(db: Session, post_id: int, member_id: int) -> bool:
     return db.query(Post).filter_by(id=post_id, author_id=member_id).first() is not None
+
+
+def get_likes_posts(db: Session, user_id: int, params: CursorParams):
+    query = db.query(Post).join(Like, Like.post_id == Post.id).filter(
+        user_id == Like.user_id).order_by(Post.create_at.desc())
+    return paginate(query, params, transformer=post_to_summary_response)
