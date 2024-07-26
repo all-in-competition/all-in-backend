@@ -22,3 +22,7 @@ class AlarmDetailResponse(BaseModel):
     post_title : str
     post_id : int
     create_at : datetime
+
+class Confirm(BaseModel):
+    sender_id : int
+    post_id : int

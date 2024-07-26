@@ -1,9 +1,10 @@
 from api.db import get_db
-from api.models.model import Alarm
+from api.models.model import Alarm, Post
 from api.routers.websocket import broadcast
-from api.schemas.alarm import AlarmCreate, AlarmSummaryResponse
+from api.schemas.alarm import AlarmCreate, AlarmSummaryResponse, Confirm
 from api.schemas.member import MemberCreate
 from api.cruds import alarm as crud_alarm
+from api.cruds import chatroom as crud_chatroom
 from fastapi import WebSocket, APIRouter, WebSocketDisconnect, Depends, status, WebSocketException, Request, HTTPException
 from fastapi_pagination.cursor import CursorParams, CursorPage
 import asyncio
@@ -73,6 +74,19 @@ async def get_alarm(alarm_id: int, request: Request, db: Session = Depends(get_d
         target = db.query(Alarm).filter_by(id = alarm_id).first()
         if (current_id == target.receiver_id):
             return crud_alarm.get_alarm(alarm_id, db)
+        else:
+            return JSONResponse({"message": "no permission"})
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+@router.post('/confirm')
+async def confirm(confirm: Confirm, request: Request, db: Session = Depends(get_db)):
+    try:
+        current_id = request.session['user']['id']
+        target = db.query(Post).filter_by(id=confirm.post_id).first()
+        if (current_id == target.author_id):
+            chatroom_id = target.chatroom
+            return crud_chatroom.add_member_to_chatroom(db, chatroom_id, confirm.sender_id)
         else:
             return JSONResponse({"message": "no permission"})
     except SQLAlchemyError as e:
