@@ -31,9 +31,11 @@ def get_posts(db: Session, params: CursorParams):
     query = db.query(Post).order_by(Post.create_at.desc())
     return paginate(query, params, transformer=post_to_summary_response)
 
+
 def get_posts_like(db: Session, params: CursorParams):
     query = db.query(Post).order_by(Post.like_count.desc())
     return paginate(query, params, transformer=post_to_summary_response)
+
 
 def get_post(post_id: int, db: Session) -> PostDetailResponse:
     try:
@@ -41,6 +43,7 @@ def get_post(post_id: int, db: Session) -> PostDetailResponse:
         if db_post is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Post not found')
         post_detail = PostDetailResponse(
+            author_id=db_post.author_id,
             contents=db_post.contents
         )
         return post_detail
@@ -135,6 +138,7 @@ def update_post(db: Session, post: PostUpdate, user_info: MemberCreate) -> PostR
         db.rollback()
         raise e
 
+
 def toggle_closed_post(post_id: int, user_id: int, db: Session):
     try:
         db_post = db.query(Post).filter(post_id == Post.id).first()
@@ -152,6 +156,7 @@ def toggle_closed_post(post_id: int, user_id: int, db: Session):
     except SQLAlchemyError as e:
         db.rollback()
         raise e
+
 
 def toggle_like_post(post_id: int, user_id: int, db: Session):
     try:

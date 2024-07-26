@@ -25,6 +25,7 @@ class PostSummaryResponse(BaseModel):
 
 
 class PostDetailResponse(BaseModel):
+    author_id: int
     contents: str
 
 
