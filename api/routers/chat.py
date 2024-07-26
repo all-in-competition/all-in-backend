@@ -37,7 +37,7 @@ async def websocket_endpoint(websocket: WebSocket, chatroom_id: int, db: Session
     await websocket.accept()
 
     # 사용자 로그인 상태 확인
-    member_id = websocket.session.get('user').get('id')
+    member_id = websocket.session.get('user', {}).get('id')
     if member_id is None:
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION, reason="Not authenticated")
         return
