@@ -62,11 +62,10 @@ async def websocket_endpoint(websocket: WebSocket, chatroom_id: int, db: Session
             else:
                 # 게시글 질문자인 경우 채팅방 인원 검사 후 추가
                 # 채팅방 인원 검사 로직 추가 필요 (예: 채팅방 인원 제한 등)
-                if len(db_chatroom.member) > 1:
-                    raise WebSocketException(
-                        code=status.WS_1008_POLICY_VIOLATION,
-                        reason="Private chat room member limit exceeded")
-                add_member_to_chatroom(db, chatroom_id, member_id)
+                raise WebSocketException(
+                    code=status.WS_1008_POLICY_VIOLATION,
+                    reason="Create private chatroom before chat"
+                )
         elif chat_type == "public":
             if is_author:
                 # 리더이지만 멤버가 아닌 경우 에러 발생

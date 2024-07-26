@@ -1,13 +1,14 @@
 from typing import List
 
 from api.cruds.message import get_messages
+from api.cruds.post import is_post_author
 from api.db import get_db
 from api.schemas.chatroom import PrivateChatroom, PublicChatroom
 from api.schemas.message import MessageLog
 from fastapi import APIRouter, Depends, Request, HTTPException, status
 from fastapi_pagination.cursor import CursorParams, CursorPage
 from sqlalchemy.orm import Session
-from api.cruds.chatroom import get_private_chatrooms, get_public_chatroom, get_chatroom
+from api.cruds.chatroom import get_private_chatrooms, get_public_chatroom, get_chatroom, create_chatroom
 
 router = APIRouter(prefix="/chatrooms", tags=["chatrooms"])
 
@@ -21,6 +22,18 @@ async def read_private_chatrooms(post_id: int, request: Request, db: Session = D
 
     personal_chatrooms = get_private_chatrooms(db, post_id, user_id)
     return personal_chatrooms
+
+
+@router.post("/private")
+async def post_private_chatroom(post_id: int, request: Request, db: Session = Depends(get_db)) -> PrivateChatroom:
+    user_id = request.session.get('user', {}).get('id')
+    if user_id is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    if is_post_author(db, post_id, user_id):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Author can't create chatroom")
+
+    private_chatroom = create_chatroom(db, post_id, "private", user_id)
+    return private_chatroom
 
 
 @router.get("/public")
