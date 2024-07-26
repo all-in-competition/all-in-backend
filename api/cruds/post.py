@@ -31,6 +31,9 @@ def get_posts(db: Session, params: CursorParams):
     query = db.query(Post).order_by(Post.create_at.desc())
     return paginate(query, params, transformer=post_to_summary_response)
 
+def get_posts_like(db: Session, params: CursorParams):
+    query = db.query(Post).order_by(Post.like_count.desc())
+    return paginate(query, params, transformer=post_to_summary_response)
 
 def get_post(post_id: int, db: Session) -> PostDetailResponse:
     try:
