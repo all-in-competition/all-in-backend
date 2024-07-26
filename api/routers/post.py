@@ -46,7 +46,7 @@ async def toggle_like_post(request: Request, post_id: int, db: Session = Depends
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @router.put("/{post_id}/update")
-async def update_resume(request: Request, post: PostUpdate, db: Session = Depends(get_db)):
+async def update_post(request: Request, post: PostUpdate, db: Session = Depends(get_db)):
     try:
         user_info = request.session["user"]
         return crud_post.update_post(db, post, user_info)
