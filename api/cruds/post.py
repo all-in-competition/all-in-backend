@@ -44,10 +44,10 @@ def get_post(post_id: int, db: Session) -> PostDetailResponse:
         raise HTTPException(e)
 
 
-def create_post(db: Session, post: PostCreate) -> PostResponse:
+def create_post(db: Session, post: PostCreate, user_id: int) -> PostResponse:
     try:
         db_post = Post(
-            author_id=post.author_id,
+            author_id=user_id,
             title=post.title,
             contents=post.contents,
             deadline=post.deadline,
