@@ -85,7 +85,7 @@ async def confirm(confirm: Confirm, request: Request, db: Session = Depends(get_
         current_id = request.session['user']['id']
         target = db.query(Post).filter_by(id=confirm.post_id).first()
         if (current_id == target.author_id):
-            chatroom_id = target.chatroom
+            chatroom_id = 1
             return crud_chatroom.add_member_to_chatroom(db, chatroom_id, confirm.sender_id)
         else:
             return JSONResponse({"message": "no permission"})
