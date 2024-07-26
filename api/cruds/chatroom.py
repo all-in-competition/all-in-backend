@@ -25,6 +25,21 @@ def add_member_to_chatroom(db: Session, chatroom_id: int, member_id: int):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This user is already participated")
     db.commit()
 
+def exit_member_to_chatroom(db: Session, chatroom_id: int, member_id: int, current_id: int):
+    chatroom = db.query(Chatroom).filter(chatroom_id == Chatroom.id).first()
+    leader_id = chatroom.post.author_id
+    member = db.query(Member).filter(member_id == Member.id).first()
+    if(current_id == member_id | current_id == leader_id):
+        if (member in chatroom.member):
+            chatroom.member.remove(member)
+            chatroom.post.current_member = len(chatroom.member)
+            db.commit()
+            return chatroom.member
+        else:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This user is not participated")
+    else:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="no permmision")
+
 
 def get_private_chatrooms(db: Session, post_id: int, member_id: int) -> List[PrivateChatroom]:
     post_info = db.query(Post.author_id, Chatroom.id.label('public_chatroom_id')).join(

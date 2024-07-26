@@ -3,12 +3,14 @@ from typing import List
 from api.cruds.message import get_messages
 from api.cruds.post import is_post_author
 from api.db import get_db
-from api.schemas.chatroom import PrivateChatroom, PublicChatroom
+from api.schemas.chatroom import PrivateChatroom, PublicChatroom, ExitChatroom
 from api.schemas.message import MessageLog
 from fastapi import APIRouter, Depends, Request, HTTPException, status
 from fastapi_pagination.cursor import CursorParams, CursorPage
 from sqlalchemy.orm import Session
-from api.cruds.chatroom import get_private_chatrooms, get_public_chatroom, get_chatroom, create_chatroom
+from api.cruds.chatroom import get_private_chatrooms, get_public_chatroom, get_chatroom, create_chatroom, \
+    exit_member_to_chatroom
+from starlette.responses import JSONResponse
 
 router = APIRouter(prefix="/chatrooms", tags=["chatrooms"])
 
@@ -57,3 +59,8 @@ async def read_messages(chatroom_id: int, request: Request, db: Session = Depend
     if user_id is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
     return get_messages(db, chatroom_id, user_id, params)
+
+@router.post("/exit")
+async def exit(request: Request, exit: ExitChatroom, db: Session = Depends(get_db)):
+    current_id = request.session['user']['id']
+    return exit_member_to_chatroom(db, exit.chatroom_id, exit.member_id, current_id)
