@@ -19,32 +19,44 @@ def create_member(db: Session, user_info: dict) -> member_schema.MemberCreate:
     db.refresh(new_member)
 
     return member_schema.MemberCreate(
-        id = new_member.id,
-        provider_id = new_member.provider_id,
-        provider_type = new_member.provider_type,
-        nickname = new_member.nickname,
-        status = new_member.status
+        id=new_member.id,
+        provider_id=new_member.provider_id,
+        provider_type=new_member.provider_type,
+        nickname=new_member.nickname,
+        status=new_member.status
     )
 
 
 def find_member(db: Session, user_info):
-    db_member = db.query(member_model.Member).filter_by(provider_type = "kakao", provider_id = user_info['id']).first()
+    db_member = db.query(member_model.Member).filter_by(provider_type="kakao", provider_id=user_info['id']).first()
     if db_member:
-         return member_schema.MemberCreate(
-             id = db_member.id,
-             provider_id = db_member.provider_id,
-             provider_type = db_member.provider_type,
-             nickname = db_member.nickname,
-             status = db_member.status
-         )
+        return member_schema.MemberCreate(
+            id=db_member.id,
+            provider_id=db_member.provider_id,
+            provider_type=db_member.provider_type,
+            nickname=db_member.nickname,
+            status=db_member.status
+        )
     else:
         return None
 
+
 def find_member_name(db: Session, uid: int):
-    db_member = db.query(member_model.Member).filter_by(id = uid).first()
+    db_member = db.query(member_model.Member).filter_by(id=uid).first()
     if db_member is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Member not found')
     return db_member.nickname
+
+
+def update_nickname(db: Session, new_name: str, uid: int):
+    target = db.query(member_model.Member).filter_by(id=uid).first()
+    if target:
+        target.nickname = new_name
+        db.commit()
+        return target.nickname
+    else:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Member not found')
+
 
 async def get_kakao_user_info(token):
     user_info_url = "https://kapi.kakao.com/v2/user/me"
