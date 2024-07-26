@@ -1,6 +1,6 @@
 import uvicorn
 from fastapi import FastAPI
-from api.routers import login, post, resume, alarm, chat, chatroom
+from api.routers import login, post, resume, alarm, chat, chatroom, member
 from starlette.middleware.sessions import SessionMiddleware
 from api.configs.app_config import settings
 from fastapi_pagination import add_pagination
@@ -12,6 +12,7 @@ app.include_router(resume.router)
 app.include_router(alarm.router)
 app.include_router(chat.router)
 app.include_router(chatroom.router)
+app.include_router(member.router)
 
 app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 
