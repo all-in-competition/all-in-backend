@@ -1,10 +1,11 @@
 from api.db import get_db
 from api.models.model import Alarm, Post
-from api.routers.websocket import broadcast
 from api.schemas.alarm import AlarmCreate, AlarmSummaryResponse, Confirm
 from api.schemas.member import MemberCreate
 from api.cruds import alarm as crud_alarm
 from api.cruds import chatroom as crud_chatroom
+from api.configs.app_config import settings
+from broadcaster import Broadcast
 from fastapi import WebSocket, APIRouter, WebSocketDisconnect, Depends, status, WebSocketException, Request, HTTPException
 from fastapi_pagination.cursor import CursorParams, CursorPage
 import asyncio
@@ -14,6 +15,7 @@ from starlette import status
 from starlette.responses import JSONResponse
 
 router = APIRouter(prefix="/alarm", tags=["alarm"])
+broadcast = Broadcast(settings.REDIS_URL)
 
 
 async def create_alarm(alarm: AlarmCreate, db: Session ):
