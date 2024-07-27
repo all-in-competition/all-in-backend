@@ -14,7 +14,9 @@ router = APIRouter(prefix="/members", tags=["member"])
 @router.put("me/nickname")
 async def update_nickname(request: Request, new_name: str, db: Session = Depends(get_db)):
     try:
-        user_id = request.session["user"]["id"]
+        user_id = request.session.get("user", {}).get("id")
+        if user_id is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
         return crud_member.update_nickname(db, new_name, user_id)
     except SQLAlchemyError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
