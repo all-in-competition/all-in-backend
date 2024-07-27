@@ -15,31 +15,44 @@ def is_chatroom_member(db: Session, chatroom_id: int, member_id: int) -> bool:
     return db.query(member_chatroom).filter_by(chatroom_id=chatroom_id, member_id=member_id).first() is not None
 
 
+def is_full(db: Session, post_id: int):
+    post = db.query(Post).filter_by(id = post_id).first()
+    if post is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+
+    if post.current_member == post.max_member:
+        post.status = "CLOSED"
+    else:
+        post.status = "ONGOING"
+    db.commit()
+
+
 def add_member_to_chatroom(db: Session, chatroom_id: int, member_id: int):
     chatroom = db.query(Chatroom).filter(chatroom_id == Chatroom.id).first()
     member = db.query(Member).filter(member_id == Member.id).first()
-    if chatroom.post.current_member == chatroom.post.max_member:
-        chatroom.post.status = "CLOSED"
-        db.commit()
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This post is closed")
-    else:
+    if chatroom.post.status == "ONGOING":
         if not (member in chatroom.member):
             chatroom.member.append(member)
             chatroom.post.current_member = len(chatroom.member)
+            db.commit()
+            is_full(db, chatroom.post.id)
         else:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This user is already participated")
-        db.commit()
+
+    else:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This Post is closed")
 
 
 def exit_member_to_chatroom(db: Session, chatroom_id: int, member_id: int, current_id: int):
     chatroom = db.query(Chatroom).filter(chatroom_id == Chatroom.id).first()
     leader_id = chatroom.post.author_id
     member = db.query(Member).filter(member_id == Member.id).first()
-    if(current_id == member_id | current_id == leader_id):
+    if (current_id == member_id | current_id == leader_id):
         if (member in chatroom.member):
             chatroom.member.remove(member)
             chatroom.post.current_member = len(chatroom.member)
             db.commit()
+            is_full(db, chatroom.post.id)
             return chatroom.member
         else:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This user is not participated")
