@@ -15,20 +15,28 @@ def is_chatroom_member(db: Session, chatroom_id: int, member_id: int) -> bool:
     return db.query(member_chatroom).filter_by(chatroom_id=chatroom_id, member_id=member_id).first() is not None
 
 
+def is_full(db: Session, chatroom_id: int):
+    post = db.query(Post).filter(Post.chatroom.id==chatroom_id).first()
+    if post.current_member == post.max_member:
+        post.status = "ClOSED"
+    else:
+        post.status = "ONGOING"
+    db.commit()
+
 def add_member_to_chatroom(db: Session, chatroom_id: int, member_id: int):
     chatroom = db.query(Chatroom).filter(chatroom_id == Chatroom.id).first()
     member = db.query(Member).filter(member_id == Member.id).first()
-    if chatroom.post.current_member == chatroom.post.max_member:
-        chatroom.post.status = "CLOSED"
-        db.commit()
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This post is closed")
-    else:
+    if chatroom.post.status == "ONGOING":
         if not (member in chatroom.member):
             chatroom.member.append(member)
             chatroom.post.current_member = len(chatroom.member)
+            db.commit()
+            is_full(db, chatroom.id)
         else:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This user is already participated")
-        db.commit()
+
+    else:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This Post is closed")
 
 
 def exit_member_to_chatroom(db: Session, chatroom_id: int, member_id: int, current_id: int):
@@ -40,6 +48,7 @@ def exit_member_to_chatroom(db: Session, chatroom_id: int, member_id: int, curre
             chatroom.member.remove(member)
             chatroom.post.current_member = len(chatroom.member)
             db.commit()
+            is_full(db, chatroom.id)
             return chatroom.member
         else:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This user is not participated")
