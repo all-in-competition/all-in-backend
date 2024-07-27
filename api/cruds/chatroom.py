@@ -16,9 +16,12 @@ def is_chatroom_member(db: Session, chatroom_id: int, member_id: int) -> bool:
 
 
 def is_full(db: Session, post_id: int):
-    post = db.query(Post).filter(id == post_id).first()
+    post = db.query(Post).filter_by(id = post_id).first()
+    if post is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+
     if post.current_member == post.max_member:
-        post.status = "ClOSED"
+        post.status = "CLOSED"
     else:
         post.status = "ONGOING"
     db.commit()
