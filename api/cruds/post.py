@@ -31,9 +31,12 @@ def get_posts(db: Session, params: CursorParams):
     query = db.query(Post).order_by(Post.create_at.desc())
     return paginate(query, params, transformer=post_to_summary_response)
 
+def get_posts_without_closed(db: Session, params: CursorParams):
+    query = db.query(Post).filter_by(status = "ONGOING").order_by(Post.create_at.desc())
+    return paginate(query, params, transformer=post_to_summary_response)
 
 def get_posts_like(db: Session, params: CursorParams):
-    query = db.query(Post).order_by(Post.like_count.desc())
+    query = db.query(Post).filter_by(status = "ONGOING").order_by(Post.like_count.desc())
     return paginate(query, params, transformer=post_to_summary_response)
 
 

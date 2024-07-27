@@ -27,6 +27,16 @@ async def get_posts_like(db: Session = Depends(get_db), params: CursorParams = D
     except SQLAlchemyError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
+@router.get("/resent")
+async def get_posts_resent(db: Session = Depends(get_db), params: CursorParams = Depends()) \
+        -> CursorPage[PostSummaryResponse]:
+    try:
+        return crud_post.get_posts_without_closed(db, params)
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+
 
 @router.get("/{post_id}")
 async def get_post(post_id: int, db: Session = Depends(get_db)) -> PostDetailResponse:
