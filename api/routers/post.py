@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 from starlette import status
 from api.cruds import post as crud_post
 from fastapi_pagination.cursor import CursorPage, CursorParams
-from starlette.responses import JSONResponse
 
 router = APIRouter(prefix="/posts", tags=["posts"])
 
@@ -19,8 +18,10 @@ async def get_posts(db: Session = Depends(get_db), params: CursorParams = Depend
     except SQLAlchemyError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
+
 @router.get("/like")
-async def get_posts_like(db: Session = Depends(get_db), params: CursorParams = Depends()) -> CursorPage[PostSummaryResponse]:
+async def get_posts_like(db: Session = Depends(get_db), params: CursorParams = Depends()) \
+        -> CursorPage[PostSummaryResponse]:
     try:
         return crud_post.get_posts_like(db, params)
     except SQLAlchemyError as e:
@@ -49,11 +50,14 @@ async def create_post(request: Request, post: PostCreate, db: Session = Depends(
 @router.post("/{post_id}/like")
 async def toggle_like_post(request: Request, post_id: int, db: Session = Depends(get_db)) -> LikeResponse:
     try:
-        current_user_id = request.session['user']['id']
+        current_user_id = request.session.get('user', {}).get('id')
+        if current_user_id is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
         result = crud_post.toggle_like_post(post_id, current_user_id, db)
         return result
     except SQLAlchemyError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
 
 @router.post("/{post_id}/closed")
 async def toggle_closed_post(request: Request, post_id: int, db: Session = Depends(get_db)):
