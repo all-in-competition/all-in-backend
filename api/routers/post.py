@@ -1,3 +1,5 @@
+from typing import List
+
 from api.schemas.like import LikeResponse
 from fastapi import APIRouter, Depends, HTTPException, Request
 from api.db import get_db
@@ -15,6 +17,14 @@ router = APIRouter(prefix="/posts", tags=["posts"])
 async def get_posts(db: Session = Depends(get_db), params: CursorParams = Depends()) -> CursorPage[PostSummaryResponse]:
     try:
         return crud_post.get_posts(db, params)
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.get("/all")
+async def get_all_posts(db: Session = Depends(get_db)) -> List[PostSummaryResponse]:
+    try:
+        return crud_post.get_all_posts(db)
     except SQLAlchemyError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
