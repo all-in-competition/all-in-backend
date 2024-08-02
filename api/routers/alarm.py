@@ -1,4 +1,4 @@
-from api.db import get_db
+from api.db import get_db, get_db_async
 from api.models.model import Alarm, Post
 from api.schemas.alarm import AlarmCreate, AlarmSummaryResponse, Confirm
 from api.cruds import alarm as crud_alarm
@@ -13,12 +13,19 @@ from sqlalchemy.orm import Session
 from starlette import status
 from starlette.responses import JSONResponse
 
+from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import Depends
+import  time
+
+
+
+
 router = APIRouter(prefix="/alarm", tags=["alarm"])
 
 
-async def create_alarm(alarm: AlarmCreate, db: Session):
+async def create_alarm(alarm: AlarmCreate, db: AsyncSession = Depends(get_db_async)):
     try:
-        crud_alarm.create_alarm(db, alarm)
+        await crud_alarm.create_alarm(db, alarm)
     except SQLAlchemyError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     return JSONResponse({"message": "Alarm created successful"})
@@ -26,12 +33,20 @@ async def create_alarm(alarm: AlarmCreate, db: Session):
 
 # 메시지 전송 함수
 @router.post("/")
-async def send_alarm(alarm: AlarmCreate, db: Session = Depends(get_db)):
+async def send_alarm(alarm: AlarmCreate, db: AsyncSession = Depends(get_db_async)):
+    start_time = time.time()
     try:
-        await create_alarm(alarm, db)  # 메시지를 데이터베이스에 저장
-        await broadcast.publish(channel=str(alarm.receiver_id), message=alarm.json())  # 수신자에게 메시지 방송
+        await asyncio.gather(
+            broadcast.publish(channel=str(alarm.receiver_id), message=alarm.json()),  # 메시지 방송
+            create_alarm(alarm, db)  # 데이터베이스에 알림 저장
+        )
+        # broadcast.publish(channel=str(alarm.receiver_id), message=alarm.json())# 수신자에게 메시지 방송
+        # await create_alarm(alarm, db)  # 메시지를 데이터베이스에 저장
     except SQLAlchemyError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    finally:
+        end_time = time.time()
+        print(f"send_alarm took {end_time - start_time} seconds")
 
 
 # 메시지 수신 함수
