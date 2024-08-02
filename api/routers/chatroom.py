@@ -4,12 +4,13 @@ import aioredis
 from api.cruds.message import get_messages, get_messages_cache
 from api.cruds.post import is_post_author
 from api.db import get_db, get_db_async
-from api.models.model import Message
+from api.models.model import Message, Member
 from api.schemas.chatroom import PrivateChatroom, PublicChatroom, ExitChatroom
 from api.schemas.message import MessageLog, MessageEvent
 from fastapi import APIRouter, Depends, Request, HTTPException, status
 from fastapi_pagination.cursor import CursorParams, CursorPage
 from sqlalchemy import text, select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 from api.cruds.chatroom import get_private_chatrooms, get_public_chatroom, get_chatroom, create_chatroom, \
     exit_member_to_chatroom
@@ -20,34 +21,23 @@ router = APIRouter(prefix="/chatrooms", tags=["chatrooms"])
 
 
 
-async def get_messages_from_db(chatroom_id: int, page: int, page_size: int, Session: Session) -> List[MessageEvent]:
-    offset = (page - 1) * page_size
-    limit = page_size
-
-    stmt = select(Message).filter(chatroom_id == Message.chatroom_id).limit(limit).offset(offset)
-    result = await Session.execute(stmt)
+async def get_messages_from_db(chatroom_id: int, db = AsyncSession) -> List[MessageEvent]:
+    stmt = select(Message).filter(chatroom_id == Message.chatroom_id)
+    result = await db.execute(stmt)
     rows = result.scalars().all()  # ORM 모델 리스트로 반환
 
     return [MessageEvent(chatroom_id=row.chatroom_id, member_id=row.member_id, contents=row.contents) for row in rows]
 
-async def cache_messages(chatroom_id: int, page: int, messages: List[MessageEvent]):
-    key = f"chatroom:{chatroom_id}:page:{page}"
+async def cache_messages(chatroom_id: int, messages: List[MessageEvent]):
+    key = f"chatroom:{chatroom_id}:messages"
     serialized_messages = [message.json() for message in messages]
     await redis_client.rpush(key, *serialized_messages)
     await redis_client.expire(key, 60)  # 캐시 만료 시간 설정 (예: 1시간)
 
-@router.get("/{chatroom_id}/{page}")
-async def get_chat_history(chatroom_id: int, page: int, page_size: int, Session = Depends(get_db_async)) -> List[MessageEvent]:
-    key = f"chatroom:{chatroom_id}:page:{page}"
-    messages = await redis_client.lrange(key, 0, -1)
-
-    if messages:
-        return [MessageEvent.parse_raw(message) for message in messages]
-    else:
-        messages_from_db = await get_messages_from_db(chatroom_id, page, page_size,  Session)
-        if messages_from_db:
-            await cache_messages(chatroom_id, page, messages_from_db)
-        return messages_from_db
+async def get_chat_history(chatroom_id: int, db: AsyncSession):
+    messages_from_db = await get_messages_from_db(chatroom_id, db)
+    if messages_from_db:
+        await cache_messages(chatroom_id, messages_from_db)
 
 async def get_chat_history_from_redis(chatroom_id: int, limit: int = 100) -> List[MessageEvent]:
     key = f"chatroom:{chatroom_id}:messages"
@@ -55,7 +45,7 @@ async def get_chat_history_from_redis(chatroom_id: int, limit: int = 100) -> Lis
     if not messages:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="noting")
     else:
-        return [MessageEvent.parse_raw(message) for message in messages]
+        return [MessageEvent.parse_raw(message) for message in reversed(messages)]
 
 
 @router.get("/private")
@@ -112,15 +102,24 @@ async def exit(request: Request, exit: ExitChatroom, db: Session = Depends(get_d
     return exit_member_to_chatroom(db, exit.chatroom_id, exit.member_id, current_id)
 
 @router.get("/cached-messages")
-async def read_cached_messages(request: Request, chatroom_id: int, limit: int = 100, params: CursorParams = Depends()) -> CursorPage[MessageEvent]:
+async def read_cached_messages(request: Request, chatroom_id: int,db: AsyncSession = Depends(get_db_async), params: CursorParams = Depends()) -> CursorPage[MessageLog]:
     user_id = request.session.get('user', {}).get('id')
     if user_id is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
     try:
+        await get_chat_history(chatroom_id, db)
         chat_history = await get_chat_history_from_redis(chatroom_id)
         if chat_history:
-            return CursorPage(items=chat_history, total=len(chat_history), params=params)
+            message_logs = [
+                MessageLog(
+                    sender_name= (await db.execute(select(Member).filter_by(id = message.member_id))).scalars().first().nickname,  # 예시로 사용자 이름을 설정
+                    is_mine=message.member_id == user_id,
+                    contents=message.contents
+                )
+                for message in chat_history
+            ]
+            return CursorPage(items=message_logs, total=len(message_logs), params=params)
 
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

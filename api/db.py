@@ -31,6 +31,8 @@ def get_db():
   finally:
     db.close()
 
+
+
 async def get_db_async() -> AsyncSession:
   async with async_session() as session:
     yield session
