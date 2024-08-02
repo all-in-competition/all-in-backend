@@ -1,6 +1,6 @@
 from typing import List, Dict
 
-import aioredis
+from redis.asyncio import Redis
 from api.cruds.message import get_messages, get_messages_cache
 from api.cruds.post import is_post_author
 from api.db import get_db, get_db_async
@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from api.cruds.chatroom import get_private_chatrooms, get_public_chatroom, get_chatroom, create_chatroom, \
     exit_member_to_chatroom
 
-redis_client = aioredis.from_url("redis://localhost:6379/0")
+redis_client = Redis.from_url("redis://localhost:6379/0")
 
 router = APIRouter(prefix="/chatrooms", tags=["chatrooms"])
 

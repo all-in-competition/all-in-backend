@@ -1,6 +1,6 @@
 import asyncio
 
-import aioredis
+from redis.asyncio import Redis
 from api.configs.app_config import settings
 from api.schemas.message import MessageEvent
 from fastapi import WebSocket, APIRouter, WebSocketDisconnect, Depends, status, WebSocketException
@@ -14,7 +14,7 @@ from api.cruds.message import save_message
 broadcast = Broadcast(settings.REDIS_URL)
 router = APIRouter(tags=["chat"])
 
-redis_client = aioredis.from_url("redis://localhost:6379/0")
+redis_client = Redis.from_url("redis://localhost:6379/0")
 
 
 async def save_message_to_redis(chatroom_id: int, message: MessageEvent, ttl: int = 60):
