@@ -1,6 +1,8 @@
+from datetime import datetime
 from typing import Sequence, Union
 
 from api.cruds.chatroom import create_chatroom
+from api.db import db_session
 from api.models.model import Post, Tag, Like, post_tag, Chatroom
 from api.schemas.like import LikeResponse
 from api.schemas.member import MemberCreate
@@ -31,12 +33,14 @@ def get_posts(db: Session, params: CursorParams):
     query = db.query(Post).order_by(Post.create_at.desc())
     return paginate(query, params, transformer=post_to_summary_response)
 
+
 def get_posts_without_closed(db: Session, params: CursorParams):
-    query = db.query(Post).filter_by(status = "ONGOING").order_by(Post.create_at.desc())
+    query = db.query(Post).filter_by(status="ONGOING").order_by(Post.create_at.desc())
     return paginate(query, params, transformer=post_to_summary_response)
 
+
 def get_posts_like(db: Session, params: CursorParams):
-    query = db.query(Post).filter_by(status = "ONGOING").order_by(Post.like_count.desc())
+    query = db.query(Post).filter_by(status="ONGOING").order_by(Post.like_count.desc())
     return paginate(query, params, transformer=post_to_summary_response)
 
 
@@ -197,3 +201,13 @@ def get_likes_posts(db: Session, user_id: int, params: CursorParams):
     query = db.query(Post).join(Like, Like.post_id == Post.id).filter(
         user_id == Like.user_id).order_by(Post.create_at.desc())
     return paginate(query, params, transformer=post_to_summary_response)
+
+
+def update_expired_posts():
+    db = db_session()
+    today = datetime.today()
+    post_to_close = db.query(Post).filter(Post.deadline < today, "ONGOING" == Post.status).all()
+    for post in post_to_close:
+        post.status = "CLOSED"
+    db.commit()
+    db.close()
