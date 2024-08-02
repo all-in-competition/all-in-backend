@@ -8,6 +8,7 @@ from api.schemas.chatroom import PrivateChatroom, PublicChatroom, ExitChatroom
 from api.schemas.message import MessageLog, MessageEvent
 from fastapi import APIRouter, Depends, Request, HTTPException, status
 from fastapi_pagination.cursor import CursorParams, CursorPage
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from api.cruds.chatroom import get_private_chatrooms, get_public_chatroom, get_chatroom, create_chatroom, \
     exit_member_to_chatroom
@@ -17,14 +18,37 @@ redis_client = aioredis.from_url("redis://localhost:6379/0")
 router = APIRouter(prefix="/chatrooms", tags=["chatrooms"])
 
 
-# async def cache_chat_history_from_db(db: Session, chatroom_id: int):
-#     messages = get_messages_cache(db, chatroom_id)
-#     key = f"chatroom:{chatroom_id}:messages"
-#
-#     async with redis_client.pipeline(transaction=True) as pipe:
-#         for message in messages:
-#             await pipe.rpush(key, message.json())
-#         await pipe.execute()
+
+async def get_messages_from_db(chatroom_id: int, page: int, page_size: int, Session: Session) -> List[MessageEvent]:
+    offset = (page - 1) * page_size
+    limit = page_size
+    async with Session as session:
+        result = await session.execute(
+            text(f"SELECT chatroom_id, member_id, contents FROM messages WHERE chatroom_id = :chatroom_id LIMIT :limit OFFSET :offset"),
+            {"chatroom_id": chatroom_id, "limit": limit, "offset": offset}
+        )
+        rows = result.fetchall()
+        return [MessageEvent(chatroom_id=row['chatroom_id'], member_id=row['member_id'], contents=row['contents']) for row in rows]
+
+
+async def cache_messages(chatroom_id: int, page: int, messages: List[MessageEvent]):
+    key = f"chatroom:{chatroom_id}:page:{page}"
+    serialized_messages = [message.json() for message in messages]
+    await redis_client.rpush(key, *serialized_messages)
+    await redis_client.expire(key, 3600)  # 캐시 만료 시간 설정 (예: 1시간)
+
+@router.get("/{chatroom_id}/{page}")
+async def get_chat_history(chatroom_id: int, page: int, page_size: int, Session = Depends(get_db)) -> List[MessageEvent]:
+    key = f"chatroom:{chatroom_id}:page:{page}"
+    messages = await redis_client.lrange(key, 0, -1)
+
+    if messages:
+        return [MessageEvent.parse_raw(message) for message in messages]
+    else:
+        messages_from_db = await get_messages_from_db(chatroom_id, page, page_size,  Session)
+        if messages_from_db:
+            await cache_messages(chatroom_id, page, messages_from_db)
+        return messages_from_db
 
 async def get_chat_history_from_redis(chatroom_id: int, limit: int = 100) -> List[MessageEvent]:
     key = f"chatroom:{chatroom_id}:messages"
