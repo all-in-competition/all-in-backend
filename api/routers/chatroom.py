@@ -1,11 +1,11 @@
-from typing import List
+from typing import List, Dict
 
 import aioredis
-from api.cruds.message import get_messages
+from api.cruds.message import get_messages, get_messages_cache
 from api.cruds.post import is_post_author
 from api.db import get_db
 from api.schemas.chatroom import PrivateChatroom, PublicChatroom, ExitChatroom
-from api.schemas.message import MessageLog
+from api.schemas.message import MessageLog, MessageEvent
 from fastapi import APIRouter, Depends, Request, HTTPException, status
 from fastapi_pagination.cursor import CursorParams, CursorPage
 from sqlalchemy.orm import Session
@@ -17,21 +17,23 @@ redis_client = aioredis.from_url("redis://localhost:6379/0")
 router = APIRouter(prefix="/chatrooms", tags=["chatrooms"])
 
 
-async def cache_chat_history_from_db(chatroom_id: int, db: Session):
-    messages = get_messages(db, chatroom_id)  # DB에서 모든 메시지를 가져옵니다.
+# async def cache_chat_history_from_db(db: Session, chatroom_id: int):
+#     messages = get_messages_cache(db, chatroom_id)
+#     key = f"chatroom:{chatroom_id}:messages"
+#
+#     async with redis_client.pipeline(transaction=True) as pipe:
+#         for message in messages:
+#             await pipe.rpush(key, message.json())
+#         await pipe.execute()
+
+async def get_chat_history_from_redis(chatroom_id: int, limit: int = 100) -> List[MessageEvent]:
     key = f"chatroom:{chatroom_id}:messages"
+    messages = await redis_client.lrange(key, -limit, -1)
+    if not messages:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="noting")
+    else:
+        return [MessageEvent.parse_raw(message) for message in messages]
 
-    # Redis 리스트의 기존 내용을 모두 삭제합니다.
-    await redis_client.delete(key)
-
-    # DB 메시지를 Redis에 저장합니다.
-    for message in messages:
-        await redis_client.rpush(key, message.json())
-
-async def get_chat_history_from_redis(chatroom_id: int, limit: int = 100) -> List[MessageLog]:
-    key = f"chatroom:{chatroom_id}:messages"
-    messages = redis_client.lrange(key, -limit, -1)
-    return [MessageLog.parse_raw(message) for message in messages]
 
 @router.get("/private")
 async def read_private_chatrooms(post_id: int, request: Request, db: Session = Depends(get_db)) \
@@ -77,12 +79,7 @@ async def read_messages(chatroom_id: int, request: Request, db: Session = Depend
     if user_id is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
-    chat_history = get_chat_history_from_redis(chatroom_id)
-    if chat_history:
-        return CursorPage(items=chat_history, total=len(chat_history), params=params)
-    else:
-        # Redis에 데이터가 없을 경우 DB에서 가져오기
-        return get_messages(db, chatroom_id, user_id, params)
+    return get_messages(db, chatroom_id, user_id, params)
 
 @router.post("/exit")
 async def exit(request: Request, exit: ExitChatroom, db: Session = Depends(get_db)):
@@ -90,3 +87,18 @@ async def exit(request: Request, exit: ExitChatroom, db: Session = Depends(get_d
     if current_id is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
     return exit_member_to_chatroom(db, exit.chatroom_id, exit.member_id, current_id)
+
+@router.get("/cached-messages")
+async def read_cached_messages(request: Request, chatroom_id: int, limit: int = 100, params: CursorParams = Depends()) -> CursorPage[MessageEvent]:
+    user_id = request.session.get('user', {}).get('id')
+    if user_id is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+
+    try:
+        chat_history = await get_chat_history_from_redis(chatroom_id)
+        if chat_history:
+            return CursorPage(items=chat_history, total=len(chat_history), params=params)
+
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail=f"Error retrieving messages: {str(e)}")

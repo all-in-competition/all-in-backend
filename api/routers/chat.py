@@ -16,10 +16,14 @@ router = APIRouter(tags=["chat"])
 
 redis_client = aioredis.from_url("redis://localhost:6379/0")
 
-async def save_message_to_redis(chatroom_id: int, message: MessageEvent):
-    key = f"chatroom:{chatroom_id}:messages"
-    await redis_client.rpush(key, message.json())
 
+async def save_message_to_redis(chatroom_id: int, message: MessageEvent, ttl: int = 60):
+    key = f"chatroom:{chatroom_id}:messages"
+
+    async with redis_client.pipeline(transaction=True) as pipe:
+        await pipe.rpush(key, message.json())
+        await pipe.expire(key, ttl)  # TTL 설정
+        await pipe.execute()
 
 async def receive_message(websocket: WebSocket, member_id: int, chatroom_id: int):
     async with broadcast.subscribe(channel=str(chatroom_id)) as subscriber:

@@ -17,9 +17,21 @@ def get_messages(db: Session, chatroom_id: int, user_id: int, params: CursorPara
     return paginate(query, params, transformer=lambda messages: message_to_message_log(messages, user_id))
 
 
+def get_messages_cache(db: Session, chatroom_id: int):
+    query = db.query(Message).filter(chatroom_id == Message.chatroom_id).order_by(Message.create_at.desc())
+    return paginate(query)
+
+
 def message_to_message_log(messages: Sequence[Message], user_id: int) -> Union[Sequence[MessageLog], None]:
     return [MessageLog(
         sender_name=message.member.nickname,
         is_mine=message.member_id == user_id,
         contents=message.contents
     ) for message in messages]
+
+def message_event_to_message_log(message: MessageEvent, user_id: int) -> MessageLog:
+    return MessageLog(
+        sender_name=message.member.nickname,
+        is_mine=message.member_id == user_id,
+        contents=message.contents
+    )
