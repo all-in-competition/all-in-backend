@@ -211,3 +211,9 @@ def update_expired_posts():
         post.status = "CLOSED"
     db.commit()
     db.close()
+
+
+def get_all_posts(db: Session):
+    posts = db.query(Post).order_by(Post.create_at.desc()).all()
+
+    return post_to_summary_response(posts)
