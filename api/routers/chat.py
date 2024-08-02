@@ -1,5 +1,6 @@
 import asyncio
 
+import aioredis
 from api.configs.app_config import settings
 from api.schemas.message import MessageEvent
 from fastapi import WebSocket, APIRouter, WebSocketDisconnect, Depends, status, WebSocketException
@@ -12,6 +13,12 @@ from api.cruds.message import save_message
 
 broadcast = Broadcast(settings.REDIS_URL)
 router = APIRouter(tags=["chat"])
+
+redis_client = aioredis.from_url("redis://localhost:6379/0")
+
+async def save_message_to_redis(chatroom_id: int, message: MessageEvent):
+    key = f"chatroom:{chatroom_id}:messages"
+    await redis_client.rpush(key, message.json())
 
 
 async def receive_message(websocket: WebSocket, member_id: int, chatroom_id: int):
@@ -28,9 +35,9 @@ async def send_message(websocket: WebSocket, member_id: int, chatroom_id: int, d
     event = MessageEvent(chatroom_id=chatroom_id, member_id=member_id, contents=data)
 
     save_message(db, event)
+    await save_message_to_redis(chatroom_id, event)  # Redis에 메시지 저장
 
     await broadcast.publish(channel=str(chatroom_id), message=event.json())
-
 
 @router.websocket("/ws/{chatroom_id}")
 async def websocket_endpoint(websocket: WebSocket, chatroom_id: int, db: Session = Depends(get_db)):
