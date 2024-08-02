@@ -3,12 +3,13 @@ from typing import List, Dict
 import aioredis
 from api.cruds.message import get_messages, get_messages_cache
 from api.cruds.post import is_post_author
-from api.db import get_db
+from api.db import get_db, get_db_async
+from api.models.model import Message
 from api.schemas.chatroom import PrivateChatroom, PublicChatroom, ExitChatroom
 from api.schemas.message import MessageLog, MessageEvent
 from fastapi import APIRouter, Depends, Request, HTTPException, status
 from fastapi_pagination.cursor import CursorParams, CursorPage
-from sqlalchemy import text
+from sqlalchemy import text, select
 from sqlalchemy.orm import Session
 from api.cruds.chatroom import get_private_chatrooms, get_public_chatroom, get_chatroom, create_chatroom, \
     exit_member_to_chatroom
@@ -22,23 +23,21 @@ router = APIRouter(prefix="/chatrooms", tags=["chatrooms"])
 async def get_messages_from_db(chatroom_id: int, page: int, page_size: int, Session: Session) -> List[MessageEvent]:
     offset = (page - 1) * page_size
     limit = page_size
-    async with Session as session:
-        result = await session.execute(
-            text(f"SELECT chatroom_id, member_id, contents FROM messages WHERE chatroom_id = :chatroom_id LIMIT :limit OFFSET :offset"),
-            {"chatroom_id": chatroom_id, "limit": limit, "offset": offset}
-        )
-        rows = result.fetchall()
-        return [MessageEvent(chatroom_id=row['chatroom_id'], member_id=row['member_id'], contents=row['contents']) for row in rows]
 
+    stmt = select(Message).filter(chatroom_id == Message.chatroom_id).limit(limit).offset(offset)
+    result = await Session.execute(stmt)
+    rows = result.scalars().all()  # ORM 모델 리스트로 반환
+
+    return [MessageEvent(chatroom_id=row.chatroom_id, member_id=row.member_id, contents=row.contents) for row in rows]
 
 async def cache_messages(chatroom_id: int, page: int, messages: List[MessageEvent]):
     key = f"chatroom:{chatroom_id}:page:{page}"
     serialized_messages = [message.json() for message in messages]
     await redis_client.rpush(key, *serialized_messages)
-    await redis_client.expire(key, 3600)  # 캐시 만료 시간 설정 (예: 1시간)
+    await redis_client.expire(key, 60)  # 캐시 만료 시간 설정 (예: 1시간)
 
 @router.get("/{chatroom_id}/{page}")
-async def get_chat_history(chatroom_id: int, page: int, page_size: int, Session = Depends(get_db)) -> List[MessageEvent]:
+async def get_chat_history(chatroom_id: int, page: int, page_size: int, Session = Depends(get_db_async)) -> List[MessageEvent]:
     key = f"chatroom:{chatroom_id}:page:{page}"
     messages = await redis_client.lrange(key, 0, -1)
 
