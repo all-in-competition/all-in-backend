@@ -20,7 +20,7 @@ router = APIRouter(tags=["chat"])
 redis_client = Redis.from_url("redis://localhost:6379/0")
 
 
-async def save_message_to_redis(chatroom_id: int, message: MessageLog, ttl: int = 60):
+async def save_message_to_redis(chatroom_id: int, message: MessageLog, ttl: int = 600):
     key = f"chatroom:{chatroom_id}:messages"
     async with redis_client.pipeline(transaction=True) as pipe:
         await pipe.rpush(key, message.json())

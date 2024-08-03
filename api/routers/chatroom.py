@@ -33,7 +33,7 @@ async def cache_messages(chatroom_id: int, messages: List[MessageLog]):
     key = f"chatroom:{chatroom_id}:messages"
     serialized_messages = [message.json() for message in messages]
     await redis_client.rpush(key, *serialized_messages)
-    await redis_client.expire(key, 60)  # 캐시 만료 시간 설정 (예: 1시간)
+    await redis_client.expire(key, 600)  # 캐시 만료 시간 설정 (예: 1시간)
 
 async def get_chat_history(chatroom_id: int, db: Session):
     messages_from_db = await get_messages_from_db(chatroom_id, db)
@@ -89,7 +89,7 @@ async def read_messages(chatroom_id: int, request: Request, db: Session = Depend
     if chatroom is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chatroom not found")
 
-    user_id = request.session.get('user', {}).get('id')
+    user_id = 5#request.session.get('user', {}).get('id')
     if user_id is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
@@ -104,15 +104,15 @@ async def exit(request: Request, exit: ExitChatroom, db: Session = Depends(get_d
 
 @router.get("/cached-messages")
 async def read_cached_messages(request: Request, chatroom_id: int,db: Session = Depends(get_db), params: CursorParams = Depends()) -> CursorPage[MessageLog]:
-    user_id = request.session.get('user', {}).get('id')
+    user_id = 5#request.session.get('user', {}).get('id')
     if user_id is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
     try:
         key = f"chatroom:{chatroom_id}:messages"
-        print(key)
         if not await redis_client.exists(key):
             await get_chat_history(chatroom_id, db)
+        await redis_client.expire(key, 600)
         chat_history = await get_chat_history_from_redis(chatroom_id)
         return CursorPage(items=chat_history, total=len(chat_history), params=params)
 
