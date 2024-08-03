@@ -29,8 +29,10 @@ async def get_from_list(list_name: str):
 
 async def create_alarm(alarm: AlarmCreate, db: AsyncSession):
     try:
-        await crud_alarm.create_alarm(db, alarm)
-        await add_to_list(f"alarms_{alarm.receiver_id}", alarm)  # Redis Streams에 알람 추가
+        await asyncio.gather(
+            crud_alarm.create_alarm(db, alarm),
+            add_to_list(f"alarms_{alarm.receiver_id}", alarm)
+        )
         return JSONResponse({"message": "Alarm created successfully"})
     except SQLAlchemyError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
@@ -41,9 +43,7 @@ async def create_alarm(alarm: AlarmCreate, db: AsyncSession):
 async def send_alarm(alarm: AlarmCreate, db: AsyncSession = Depends(get_db_async)):
     start_time = time.time()
     try:
-        await create_alarm(alarm, db)  # 데이터베이스에 알림 저장
-        # broadcast.publish(channel=str(alarm.receiver_id), message=alarm.json())# 수신자에게 메시지 방송
-        # await create_alarm(alarm, db)  # 메시지를 데이터베이스에 저장
+        return await create_alarm(alarm, db)  # 데이터베이스에 알림 저장
     except SQLAlchemyError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     finally:
