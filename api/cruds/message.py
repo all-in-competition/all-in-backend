@@ -25,7 +25,7 @@ def get_messages_cache(db: Session, chatroom_id: int):
 def message_to_message_log(messages: Sequence[Message], user_id: int) -> Union[Sequence[MessageLog], None]:
     return [MessageLog(
         sender_name=message.member.nickname,
-        is_mine=message.member_id == user_id,
+        member_id=message.member_id,
         contents=message.contents
     ) for message in messages]
 

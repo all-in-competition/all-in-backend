@@ -1,12 +1,15 @@
 import asyncio
 
+from api.models.model import Member
+from api.routers.chatroom import get_chat_history
 from redis.asyncio import Redis
 from api.configs.app_config import settings
-from api.schemas.message import MessageEvent
+from api.schemas.message import MessageEvent, MessageLog
 from fastapi import WebSocket, APIRouter, WebSocketDisconnect, Depends, status, WebSocketException
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 from broadcaster import Broadcast
-from api.db import get_db
+from api.db import get_db, get_db_async
 from api.cruds.chatroom import get_chatroom, is_chatroom_member, add_member_to_chatroom
 from api.cruds.post import is_post_author
 from api.cruds.message import save_message
@@ -17,9 +20,8 @@ router = APIRouter(tags=["chat"])
 redis_client = Redis.from_url("redis://localhost:6379/0")
 
 
-async def save_message_to_redis(chatroom_id: int, message: MessageEvent, ttl: int = 60):
+async def save_message_to_redis(chatroom_id: int, message: MessageLog, ttl: int = 60):
     key = f"chatroom:{chatroom_id}:messages"
-
     async with redis_client.pipeline(transaction=True) as pipe:
         await pipe.rpush(key, message.json())
         await pipe.expire(key, ttl)  # TTL 설정
@@ -37,9 +39,15 @@ async def receive_message(websocket: WebSocket, member_id: int, chatroom_id: int
 async def send_message(websocket: WebSocket, member_id: int, chatroom_id: int, db: Session):
     data = await websocket.receive_text()
     event = MessageEvent(chatroom_id=chatroom_id, member_id=member_id, contents=data)
+    log = MessageLog(sender_name= db.query(Member).filter(Member.id == member_id).first().nickname,
+                     member_id= member_id,
+                     contents=data)
+    key = f"chatroom:{chatroom_id}:messages"
 
     save_message(db, event)
-    await save_message_to_redis(chatroom_id, event)  # Redis에 메시지 저장
+    if not await redis_client.exists(key):
+        await get_chat_history(chatroom_id, db)
+    await save_message_to_redis(chatroom_id, log)  # Redis에 메시지 저장
 
     await broadcast.publish(channel=str(chatroom_id), message=event.json())
 
