@@ -73,6 +73,9 @@ class Resume(Base):
 # 게시판
 class Post(Base):
     __tablename__ = 'post'
+    __table_args__ = (
+        Index('idx_post_create_at', 'create_at'),
+    )
 
     id = Column(BIGINT, primary_key=True, nullable=False, autoincrement=True)
     author_id = Column(BIGINT, ForeignKey('member.id'), nullable=False)
