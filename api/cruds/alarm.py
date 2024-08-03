@@ -9,22 +9,44 @@ from fastapi_pagination.cursor import CursorParams
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from starlette import status
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import SQLAlchemyError
+import  time
 
-
-def create_alarm(db: Session, alarm: AlarmCreate):
+async def create_alarm(db: AsyncSession, alarm: AlarmCreate):
+    start_time = time.time()
     try:
         new_alarm = Alarm(
-            sender_id= alarm.sender_id,
-            receiver_id = alarm.receiver_id,
-            post_id = alarm.post_id,
-            type =  alarm.type
+            sender_id=alarm.sender_id,
+            receiver_id=alarm.receiver_id,
+            post_id=alarm.post_id,
+            type=alarm.type
         )
         db.add(new_alarm)
-        db.commit()
+        await db.commit()
+        await db.refresh(new_alarm)  # 비동기적으로 리프레시
     except SQLAlchemyError as e:
-        db.rollback()
+        await db.rollback()
         raise e
-        
+    finally:
+        end_time = time.time()
+        print(f"create_alarm took {end_time - start_time} seconds")
+
+
+# def create_alarm(db: Session, alarm: AlarmCreate):
+#     try:
+#         new_alarm = Alarm(
+#             sender_id= alarm.sender_id,
+#             receiver_id = alarm.receiver_id,
+#             post_id = alarm.post_id,
+#             type =  alarm.type
+#         )
+#         db.add(new_alarm)
+#         db.commit()
+#     except SQLAlchemyError as e:
+#         db.rollback()
+#         raise e
+
 def alarm_to_summary_response(alarms: Sequence[Alarm]) -> Union[Sequence[AlarmSummaryResponse], None]:
     return [AlarmSummaryResponse(
         sender_name= alarm.sender.nickname,
