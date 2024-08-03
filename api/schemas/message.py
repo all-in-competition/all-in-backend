@@ -9,5 +9,5 @@ class MessageEvent(BaseModel):
 
 class MessageLog(BaseModel):
     sender_name: str
-    is_mine: bool
+    member_id: int
     contents: str
