@@ -81,7 +81,7 @@ class Post(Base):
     author_id = Column(BIGINT, ForeignKey('member.id'), nullable=False)
     title = Column(String(50), nullable=False)
     contents = Column(String(5000), nullable=False)
-    create_at = Column(TIMESTAMP, default=func.current_timestamp(), nullable=False)
+    create_at = Column(TIMESTAMP(fsp=3), default=func.current_timestamp(3), nullable=False)
     update_at = Column(TIMESTAMP, default=func.current_timestamp(), onupdate=func.current_timestamp(), nullable=False)
     deadline = Column(TIMESTAMP, nullable=False)
     max_member = Column(TINYINT(unsigned=True), nullable=False, default=0)
