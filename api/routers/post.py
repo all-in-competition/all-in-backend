@@ -6,6 +6,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from starlette import status
 from api.cruds import post as crud_post
+from fastapi_pagination import Page, Params
 from fastapi_pagination.cursor import CursorPage, CursorParams
 
 router = APIRouter(prefix="/posts", tags=["posts"])
@@ -17,6 +18,16 @@ async def get_posts(db: Session = Depends(get_db), params: CursorParams = Depend
         return crud_post.get_posts(db, params)
     except SQLAlchemyError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.get("/offset", response_model=Page[PostSummaryResponse])
+async def get_posts(db: Session = Depends(get_db), params: Params = Depends()) -> Page[PostSummaryResponse]:
+    try:
+        return crud_post.get_posts_offset(db, params)
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error: " + str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unexpected error: " + str(e))
 
 
 @router.get("/like")

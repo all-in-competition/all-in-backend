@@ -3,10 +3,11 @@ from typing import Sequence, Union
 
 from api.cruds.chatroom import create_chatroom
 from api.db import db_session
-from api.models.model import Post, Tag, Like, post_tag, Chatroom
+from api.models.model import Post, Tag, Like, post_tag
 from api.schemas.like import LikeResponse
 from api.schemas.member import MemberCreate
 from fastapi import HTTPException
+from fastapi_pagination import Params, Page
 from fastapi_pagination.cursor import CursorParams
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -211,3 +212,8 @@ def update_expired_posts():
         post.status = "CLOSED"
     db.commit()
     db.close()
+
+
+def get_posts_offset(db: Session, params: Params) -> Page[PostSummaryResponse]:
+    query = db.query(Post).order_by(Post.create_at.desc())
+    return paginate(query, params, transformer=post_to_summary_response)
